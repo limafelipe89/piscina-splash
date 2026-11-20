@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Piscina Splash · Tratamento</title>
+  <meta name="theme-color" content="#0b4f5c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-linha">
+      <div>
+        <p class="topo-sub">Splash Italiana · 44.800 L · fibra · solar</p>
+        <h1 id="titulo-aba">Início</h1>
+      </div>
+      <span id="status-rede" class="rede" hidden>Offline</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ INÍCIO ============ -->
+    <section id="aba-inicio" class="aba ativa" aria-labelledby="tab-inicio">
+      <div id="pendentes-aviso" class="aviso aviso-info" hidden></div>
+
+      <article class="card">
+        <div class="card-cab">
+          <h2>Última medição</h2>
+          <span id="ultima-data" class="muted"></span>
+        </div>
+        <div id="ultima-medicao" class="medidores">
+          <p class="muted">Nenhum registro ainda. Faça a primeira manutenção.</p>
+        </div>
+        <div id="veredito" class="veredito" hidden></div>
+      </article>
+
+      <div class="acoes-rapidas">
+        <button class="acao" data-novo="manutencao">
+          <span class="acao-ico" aria-hidden="true">🧽</span>
+          <span><strong>Manutenção</strong><small>Fim de semana, sem banhistas</small></span>
+        </button>
+        <button class="acao" data-novo="antes">
+          <span class="acao-ico" aria-hidden="true">✅</span>
+          <span><strong>Antes do banho</strong><small>Liberar a piscina</small></span>
+        </button>
+        <button class="acao" data-novo="depois">
+          <span class="acao-ico" aria-hidden="true">🌙</span>
+          <span><strong>Depois do uso</strong><small>Limpeza e nova medição</small></span>
+        </button>
+      </div>
+
+      <article class="card">
+        <h2>Resumo do mês</h2>
+        <div class="resumo">
+          <div><span id="res-registros" class="num">0</span><small>registros</small></div>
+          <div><span id="res-gasto" class="num">R$ 0</span><small>gasto lançado</small></div>
+          <div><span id="res-dias" class="num">–</span><small>dias desde a última manutenção</small></div>
+        </div>
+      </article>
+
+      <article class="card lembrete">
+        <h2>Lembre-se</h2>
+        <ul>
+          <li>Meça cloro livre e pH <strong>antes de cada banho</strong>, mesmo que a manutenção tenha sido feita na véspera.</li>
+          <li>Não aplique produto por calendário: só corrija o que a medição mostrar.</li>
+          <li>Nunca misture produtos químicos.</li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- ============ GUIA ============ -->
+    <section id="aba-guia" class="aba" aria-labelledby="tab-guia" hidden>
+      <details class="guia" open>
+        <summary>1. A piscina e o objetivo</summary>
+        <div class="guia-corpo">
+          <p><strong>Volume estimado:</strong> 8,00 × 4,00 × 1,40 m = 44,8 m³ (44.800 L). Curvas, bancos e fundo inclinado podem reduzir o volume real.</p>
+          <p>A piscina fica sem banhistas durante a semana, a bomba funciona por temporizador, tem aquecimento solar (água entre 28 e 30 °C) e usa o filtro de pano original Splash.</p>
+          <p>A manutenção manual fica concentrada no fim de semana e nenhum produto é aplicado sem a medição indicar.</p>
+          <p class="aviso aviso-alerta">Concentrar a manutenção no fim de semana não garante água sanitizada por 7 dias. Sol, calor, chuva e sujeira mudam o cloro e o pH. Meça antes de cada banho e, se der, também no meio da semana.</p>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>2. O que cada produto faz</summary>
+        <div class="guia-corpo">
+          <dl class="produtos">
+            <dt>Pastilha de tricloro</dt>
+            <dd>Libera cloro aos poucos para desinfecção contínua. Use no dosador flutuante e não deixe a pastilha encostar na fibra.</dd>
+            <dt>Cloro granulado</dt>
+            <dd>Sobe o cloro livre rápido. É produto de correção, não dose semanal fixa.</dd>
+            <dt>Elevador / redutor de pH</dt>
+            <dd>Coloca o pH na faixa. Use só depois de medir. Como a pastilha de tricloro é ácida, o elevador costuma ser usado com frequência.</dd>
+            <dt>Ajustador de alcalinidade</dt>
+            <dd>Estabiliza o pH e reduz oscilações. Use se o teste indicar.</dd>
+            <dt>Algicida</dt>
+            <dd>Ajuda a prevenir algas, mas não substitui cloro nem escovação. Prefira sem cobre e confirme compatibilidade com fibra.</dd>
+            <dt>Clarificante / floculante</dt>
+            <dd>Só com água turva e se o rótulo indicar compatibilidade com filtro de pano.</dd>
+            <dt>Sulfato de alumínio</dt>
+            <dd>Não é produto semanal. Só em recuperação indicada pelo fabricante; altera pH e alcalinidade.</dd>
+          </dl>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>3. Faixas de referência</summary>
+        <div class="guia-corpo">
+          <table class="faixas">
+            <thead><tr><th>Parâmetro</th><th>Ideal</th><th>Quando medir</th></tr></thead>
+            <tbody>
+              <tr><td>Cloro livre</td><td>≥ 2 ppm<br><small>e dentro do rótulo</small></td><td>Antes de cada uso; mais vezes com uso intenso</td></tr>
+              <tr><td>pH</td><td>7,2 – 7,6</td><td>Antes de cada uso e na manutenção</td></tr>
+              <tr><td>Alcalinidade</td><td>80 – 120 ppm<br><small>siga o rótulo</small></td><td>Semanal no início; depois conforme estabilidade</td></tr>
+              <tr><td>Aspecto</td><td>Clara, fundo visível, sem limo</td><td>Na manutenção e antes do banho</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">O CDC recomenda pH de 7,0 a 7,8 e pelo menos 2 ppm de cloro livre em piscinas com cloro estabilizado (tricloro). Não confunda cloro livre com cloro total.</p>
+          <p class="aviso aviso-info"><strong>Estabilizante (ácido cianúrico):</strong> o tricloro deixa estabilizante na água e ele se acumula com os meses, tirando a força do cloro. Meça a cada 1–2 meses; se subir demais, troque parte da água.</p>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>4. Fim de semana sem banhistas</summary>
+        <div class="guia-corpo">
+          <ol>
+            <li><strong>Inspeção e limpeza:</strong> observe cor e transparência, retire folhas, escove paredes e fundo, limpe pré-filtro e filtro de pano conforme o manual Splash.</li>
+            <li><strong>Testes:</strong> meça cloro livre e pH; alcalinidade toda semana até estabilizar. Registre no checklist.</li>
+            <li><strong>Correções:</strong> ajuste pH e alcalinidade só se estiverem fora; corrija o cloro conforme medição e rótulo.</li>
+            <li><strong>Filtração:</strong> respeite os limites de vazão e pressão do filtro, bomba e aquecedor. Não defina o tempo só pela potência do motor.</li>
+          </ol>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>5. Dia de banho</summary>
+        <div class="guia-corpo">
+          <h3>Antes de liberar</h3>
+          <p>Meça cloro livre e pH de novo, confirme que estão na faixa e que a água está clara, sem película escorregadia. Se algo estiver fora, corrija, espere o tempo do rótulo e teste de novo.</p>
+          <h3>Durante uso intenso</h3>
+          <p>Banhistas, protetor solar, suor e calor consomem cloro. Teste novamente com muita gente ou uso prolongado. <strong>Não permita banho com cloro fora da faixa.</strong></p>
+          <h3>Depois do uso</h3>
+          <p>Retire detritos, deixe filtrar e meça de novo se o uso foi intenso. Choque só quando a análise e o rótulo justificarem.</p>
+          <p class="aviso aviso-alerta">O CDC recomenda testar cloro e pH pelo menos duas vezes ao dia em piscinas residenciais em uso.</p>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>6. Pastilhas e orçamento</summary>
+        <div class="guia-corpo">
+          <p>Referência GENCLOR T-200: 1 tablete de 200 g para cada 30 m³, durando 7 a 10 dias; em piscina aquecida, +50%.</p>
+          <p class="formula">44,8 ÷ 30 × 1,5 = <strong>2,24 tabletes</strong> por ciclo</p>
+          <p>Na prática, comece com <strong>2 tabletes</strong> no dosador e ajuste pelas medições. Isso dá cerca de 6,7 a 9,6 tabletes por mês.</p>
+          <table class="faixas">
+            <thead><tr><th>Item</th><th>Mês</th></tr></thead>
+            <tbody>
+              <tr><td>Pastilhas tricloro</td><td>R$ 60 – 135</td></tr>
+              <tr><td>Cloro granulado (reserva)</td><td>R$ 0 – 20</td></tr>
+              <tr><td>Ajustadores de pH/alcalinidade</td><td>R$ 15 – 40</td></tr>
+              <tr><td>Algicida/clarificante (eventual)</td><td>R$ 0 – 10</td></tr>
+              <tr><td>Reagentes do kit de teste</td><td>conforme o kit</td></tr>
+              <tr class="total"><td>Total</td><td>R$ 75 – 205</td></tr>
+            </tbody>
+          </table>
+          <p><strong>Reserva sugerida: cerca de R$ 150/mês.</strong> Revise após 4–8 semanas com os gastos lançados no checklist. Comprar em kit (10 ou 50 unidades) sai bem mais barato que avulso.</p>
+          <p class="muted">Preços são estimativas. Confirme a dosagem na embalagem do produto comprado.</p>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>7. Cuidados com fibra, filtro e solar</summary>
+        <div class="guia-corpo">
+          <ul>
+            <li>Nunca misture produtos nem coloque produtos diferentes no mesmo recipiente. Guarde fechados e secos, use proteção.</li>
+            <li>Não coloque pastilhas direto na fibra; use dosador flutuante e evite que ele fique encostado.</li>
+            <li>Não aplique cloro concentrado direto na superfície.</li>
+            <li>Antes de algicida, clarificante ou floculante, confirme compatibilidade com fibra, filtro de pano e aquecedor solar.</li>
+            <li>Confirme com a Splash/instalador a vazão e a pressão do filtro e do circuito solar antes de definir o tempo de bomba.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="guia">
+        <summary>8. Fontes e limites</summary>
+        <div class="guia-corpo">
+          <ul class="fontes">
+            <li><a href="https://www.cdc.gov/healthy-swimming/about/home-pool-and-hot-tub-water-treatment-and-testing.html" target="_blank" rel="noopener">CDC — Home Pool Water Treatment and Testing</a></li>
+            <li><a href="https://www.genco.com.br/genclor-t200/" target="_blank" rel="noopener">GENCO — GENCLOR T-200</a></li>
+            <li><a href="https://www.splashpiscinas.com/piscinas/italiana" target="_blank" rel="noopener">Splash — Piscina Italiana</a></li>
+            <li><a href="https://www.splashpiscinas.com/produto/dry-pump-splash" target="_blank" rel="noopener">Splash — Dry Pump / filtro Pratic</a></li>
+          </ul>
+          <p class="muted">Guia orientativo. Em caso de conflito, valem o rótulo/FDS e as instruções dos fabricantes da piscina, filtro, bomba e aquecedor.</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ CHECKLIST ============ -->
+    <section id="aba-checklist" class="aba" aria-labelledby="tab-checklist" hidden>
+      <form id="form" novalidate>
+        <input type="hidden" name="id">
+        <div class="seg" role="radiogroup" aria-label="Tipo de registro">
+          <label><input type="radio" name="tipo" value="manutencao" checked><span>Manutenção</span></label>
+          <label><input type="radio" name="tipo" value="antes"><span>Antes do banho</span></label>
+          <label><input type="radio" name="tipo" value="depois"><span>Depois do uso</span></label>
+        </div>
+
+        <div id="editando-aviso" class="aviso aviso-info" hidden>
+          Editando registro. <button type="button" id="cancelar-edicao" class="link">Cancelar</button>
+        </div>
+
+        <article class="card">
+          <div class="grade2">
+            <label class="campo">
+              <span>Data</span>
+              <input type="date" name="data" required>
+            </label>
+            <label class="campo">
+              <span>Hora</span>
+              <input type="time" name="hora">
+            </label>
+          </div>
+          <label class="campo">
+            <span>Quem fez</span>
+            <input type="text" name="responsavel" list="lista-responsaveis" autocomplete="name" maxlength="60" placeholder="Nome" required>
+            <datalist id="lista-responsaveis"></datalist>
+          </label>
+        </article>
+
+        <article class="card">
+          <h2>Medições</h2>
+          <div class="grade2">
+            <label class="campo medida">
+              <span>Cloro livre <small>ppm</small></span>
+              <input type="text" inputmode="decimal" name="cloro" placeholder="ex.: 2,5" autocomplete="off">
+              <em class="dica" data-para="cloro"></em>
+            </label>
+            <label class="campo medida">
+              <span>pH</span>
+              <input type="text" inputmode="decimal" name="ph" placeholder="ex.: 7,4" autocomplete="off">
+              <em class="dica" data-para="ph"></em>
+            </label>
+            <label class="campo medida">
+              <span>Alcalinidade <small>ppm</small></span>
+              <input type="text" inputmode="decimal" name="alcalinidade" placeholder="ex.: 100" autocomplete="off">
+              <em class="dica" data-para="alcalinidade"></em>
+            </label>
+            <label class="campo medida">
+              <span>Temperatura <small>°C</small></span>
+              <input type="text" inputmode="decimal" name="temperatura" placeholder="ex.: 29" autocomplete="off">
+              <em class="dica" data-para="temperatura"></em>
+            </label>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-cab">
+            <h2>Tarefas</h2>
+            <span id="contador-tarefas" class="muted">0/0</span>
+          </div>
+          <ul id="lista-tarefas" class="tarefas"></ul>
+          <button type="button" id="marcar-todas" class="botao botao-sec botao-peq">Marcar todas</button>
+        </article>
+
+        <article class="card">
+          <h2>Produtos e gastos</h2>
+          <label class="campo">
+            <span>Produtos aplicados e quantidades</span>
+            <textarea name="produtos" rows="3" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador; 150 g de elevador de pH"></textarea>
+          </label>
+          <label class="campo">
+            <span>Valor gasto (compras) <small>R$</small></span>
+            <input type="text" inputmode="decimal" name="gasto" placeholder="0,00" autocomplete="off">
+          </label>
+          <label class="campo">
+            <span>Observações</span>
+            <textarea name="observacoes" rows="3" maxlength="2000" placeholder="Cor da água, chuva, uso intenso, ruídos na bomba…"></textarea>
+          </label>
+        </article>
+
+        <div class="barra-salvar">
+          <button type="submit" class="botao" id="botao-salvar">Salvar registro</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ HISTÓRICO ============ -->
+    <section id="aba-historico" class="aba" aria-labelledby="tab-historico" hidden>
+      <div class="filtros">
+        <select id="filtro-tipo" aria-label="Filtrar por tipo">
+          <option value="">Todos os tipos</option>
+          <option value="manutencao">Manutenção</option>
+          <option value="antes">Antes do banho</option>
+          <option value="depois">Depois do uso</option>
+        </select>
+        <button type="button" id="exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
+      </div>
+      <div id="lista-historico" class="historico">
+        <p class="muted">Carregando…</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="abas" role="tablist">
+    <button role="tab" id="tab-inicio" data-aba="inicio" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span>Início</span>
+    </button>
+    <button role="tab" id="tab-guia" data-aba="guia" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H8a3 3 0 0 1-3-3zm3 13h8M8 8h6M8 11.5h6"/></svg>
+      <span>Guia</span>
+    </button>
+    <button role="tab" id="tab-checklist" data-aba="checklist" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10M9 12h10M9 19h10M3.5 5l1.5 1.5L7.5 4M3.5 12l1.5 1.5L7.5 11M3.5 19l1.5 1.5L7.5 18"/></svg>
+      <span>Checklist</span>
+    </button>
+    <button role="tab" id="tab-historico" data-aba="historico" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4"/></svg>
+      <span>Histórico</span>
+    </button>
+  </nav>
+
+  <dialog id="dialogo-acesso">
+    <form method="dialog" id="form-acesso">
+      <h2>Código de acesso</h2>
+      <p class="muted">Digite o código combinado para ver e salvar os registros.</p>
+      <input type="password" id="codigo-acesso" inputmode="numeric" autocomplete="current-password" required>
+      <p id="erro-acesso" class="erro" hidden>Código incorreto.</p>
+      <button class="botao" value="ok">Entrar</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
