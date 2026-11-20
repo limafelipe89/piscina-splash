@@ -19,9 +19,31 @@
         <p class="topo-sub">Splash Italiana · 44.800 L · fibra · solar</p>
         <h1 id="titulo-aba">Início</h1>
       </div>
-      <span id="status-rede" class="rede" hidden>Offline</span>
+      <div class="topo-dir">
+        <span id="status-rede" class="rede" hidden>Offline</span>
+        <button type="button" id="botao-usuario" class="usuario" hidden aria-haspopup="true" aria-expanded="false">
+          <img id="usuario-foto" alt="" referrerpolicy="no-referrer" hidden>
+          <span id="usuario-inicial" aria-hidden="true"></span>
+          <span class="sr">Conta</span>
+        </button>
+      </div>
+    </div>
+    <div id="menu-usuario" class="menu-usuario" hidden>
+      <p><strong id="usuario-nome"></strong><br><small id="usuario-email"></small></p>
+      <a class="botao botao-sec botao-peq" href="/api/auth/logout">Sair</a>
     </div>
   </header>
+
+  <section id="tela-login" class="tela-login" hidden>
+    <div class="login-caixa">
+      <img src="/icon.svg" alt="" width="72" height="72">
+      <h2>Piscina Splash</h2>
+      <p class="muted">Entre com a sua conta Google para ver o guia e lançar as manutenções.</p>
+      <p id="login-erro" class="aviso aviso-alerta" hidden></p>
+      <a class="botao botao-google" href="/api/auth/login">Entrar com Google</a>
+      <p class="muted login-rodape">Só e-mails autorizados conseguem entrar.</p>
+    </div>
+  </section>
 
   <main>
     <!-- ============ INÍCIO ============ -->

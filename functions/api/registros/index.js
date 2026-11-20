@@ -20,7 +20,7 @@ export async function onRequestGet({ request, env }) {
   return json({ registros: results.map(saida) });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, data }) {
   let r;
   try {
     r = validar(await request.json());
@@ -31,13 +31,13 @@ export async function onRequestPost({ request, env }) {
   // client_id evita duplicar quando o celular reenvia um registro feito offline
   const res = await env.DB.prepare(
     `INSERT INTO registros
-       (client_id, data, hora, tipo, responsavel, cloro, ph, alcalinidade, temperatura, tarefas, produtos, gasto, observacoes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       (client_id, data, hora, tipo, responsavel, cloro, ph, alcalinidade, temperatura, tarefas, produtos, gasto, observacoes, criado_por)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(client_id) DO NOTHING
      RETURNING *`
   ).bind(
     r.client_id, r.data, r.hora, r.tipo, r.responsavel, r.cloro, r.ph, r.alcalinidade,
-    r.temperatura, r.tarefas, r.produtos, r.gasto, r.observacoes
+    r.temperatura, r.tarefas, r.produtos, r.gasto, r.observacoes, data.usuario?.email || null
   ).first();
 
   if (!res) {

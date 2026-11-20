@@ -46,6 +46,7 @@ const LS = {
   cache: "piscina.cache",
   pendentes: "piscina.pendentes",
   responsavel: "piscina.responsavel",
+  acesso: "piscina.acesso",
 };
 
 /* =========================================================
@@ -179,6 +180,10 @@ async function api(caminho, opcoes = {}, tentativa = 0) {
   } catch {
     throw new ErroRede("Sem conexão");
   }
+  if (resp.status === 401 && acesso.modo === "google") {
+    mostrarLogin("Sua sessão expirou. Entre novamente.");
+    throw new Error("Faça login para continuar");
+  }
   if (resp.status === 401 && tentativa < 3) {
     if (cod) $("#erro-acesso").hidden = false;
     const ok = await pedirCodigo();
@@ -189,6 +194,76 @@ async function api(caminho, opcoes = {}, tentativa = 0) {
   const dados = await resp.json().catch(() => ({}));
   if (!resp.ok) throw new Error(dados.erro || `Erro ${resp.status}`);
   return dados;
+}
+
+/* =========================================================
+   Acesso (login Google / código / aberto)
+   ========================================================= */
+let acesso = lerLS(LS.acesso, { modo: null, usuario: null });
+
+const ERROS_LOGIN = {
+  nao_autorizado: "Este e-mail não está autorizado. Peça para incluírem você na lista.",
+  login_cancelado: "Login cancelado.",
+  login_expirado: "O login demorou demais. Tente de novo.",
+  login_falhou: "Não foi possível concluir o login. Tente de novo.",
+  google_nao_configurado: "O login com Google ainda não foi configurado no servidor.",
+};
+
+function mostrarLogin(msg) {
+  const tela = $("#tela-login");
+  const erro = $("#login-erro");
+  erro.hidden = !msg;
+  erro.textContent = msg || "";
+  tela.hidden = false;
+}
+
+function renderUsuario() {
+  const u = acesso.usuario;
+  const botao = $("#botao-usuario");
+  if (!u) { botao.hidden = true; $("#menu-usuario").hidden = true; return; }
+  botao.hidden = false;
+  $("#usuario-nome").textContent = u.nome || "";
+  $("#usuario-email").textContent = u.email || "";
+  const foto = $("#usuario-foto");
+  if (u.foto) {
+    foto.src = u.foto;
+    foto.hidden = false;
+    $("#usuario-inicial").textContent = "";
+    foto.onerror = () => { foto.hidden = true; $("#usuario-inicial").textContent = (u.nome || u.email || "?")[0].toUpperCase(); };
+  } else {
+    foto.hidden = true;
+    $("#usuario-inicial").textContent = (u.nome || u.email || "?")[0].toUpperCase();
+  }
+}
+
+// Retorna true se o app pode carregar os dados.
+async function verificarAcesso() {
+  const params = new URLSearchParams(location.search);
+  const erroURL = params.get("erro");
+  if (erroURL) history.replaceState(null, "", location.pathname + location.hash);
+
+  try {
+    const r = await fetch("/api/auth/me", { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error();
+    acesso = await r.json();
+    gravarLS(LS.acesso, acesso);
+  } catch {
+    // sem internet: usa o último estado conhecido para continuar funcionando
+  }
+  renderUsuario();
+
+  if (acesso.modo === "google" && !acesso.usuario) {
+    let msg = ERROS_LOGIN[erroURL] || "";
+    if (erroURL === "nao_autorizado" && params.get("email")) {
+      msg = `O e-mail ${params.get("email")} não está autorizado. Peça para incluírem você na lista.`;
+    }
+    registros = [];
+    gravarLS(LS.cache, []);
+    mostrarLogin(msg);
+    return false;
+  }
+  $("#tela-login").hidden = true;
+  return true;
 }
 
 /* =========================================================
@@ -355,7 +430,7 @@ function novoRegistro(tipo = "manutencao") {
   $(`input[name="tipo"][value="${tipo}"]`, f).checked = true;
   f.data.value = hojeISO();
   f.hora.value = horaAgora();
-  f.responsavel.value = lerLS(LS.responsavel, "");
+  f.responsavel.value = lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
   $("#editando-aviso").hidden = true;
   $("#botao-salvar").textContent = "Salvar registro";
   renderTarefas();
@@ -478,6 +553,7 @@ function renderHistorico() {
         ${naoFeitas.length ? `<div><h4>Não marcado</h4><ul>${naoFeitas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
         ${r.produtos ? `<div><h4>Produtos aplicados</h4><p>${esc(r.produtos)}</p></div>` : ""}
         ${r.observacoes ? `<div><h4>Observações</h4><p>${esc(r.observacoes)}</p></div>` : ""}
+        ${r.criado_por ? `<p class="muted">Lançado por ${esc(r.criado_por)}${r.atualizado_por ? ` · editado por ${esc(r.atualizado_por)}` : ""}</p>` : ""}
         ${r._pendente ? '<p class="muted">Aguardando internet para enviar.</p>' : `
         <div class="reg-acoes">
           <button type="button" class="botao botao-sec botao-peq" data-editar="${r.id}">Editar</button>
@@ -585,10 +661,24 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("offline", atualizarRede);
   atualizarRede();
 
-  novoRegistro();
+  // menu do usuário
+  const botaoUsuario = $("#botao-usuario");
+  const menu = $("#menu-usuario");
+  botaoUsuario.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+    botaoUsuario.setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.hidden && !menu.contains(e.target)) { menu.hidden = true; botaoUsuario.setAttribute("aria-expanded", "false"); }
+  });
+
   irPara(location.hash.slice(1) || "inicio", { rolar: false });
   renderTudo();
-  sincronizar().then(carregar);
+  verificarAcesso().then((ok) => {
+    novoRegistro();
+    if (ok) sincronizar().then(carregar);
+  });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});

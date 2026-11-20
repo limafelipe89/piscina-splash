@@ -1,7 +1,11 @@
 // Roda antes de todas as rotas /api/*:
-// 1) confere o código de acesso (se a variável ACCESS_CODE estiver configurada);
+// 1) controle de acesso:
+//    - com GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET: exige login Google de um e-mail em ALLOWED_EMAILS;
+//    - senão, com ACCESS_CODE: exige o código no cabeçalho X-Access-Code;
+//    - senão: aberto.
 // 2) garante que a tabela exista no D1.
-import { SCHEMA, INDICE, erro } from "./_lib.js";
+import { SCHEMA, INDICE, MIGRACOES, erro } from "./_lib.js";
+import { googleAtivo, lerSessao } from "./_auth.js";
 
 let tabelaPronta = false;
 
@@ -15,8 +19,29 @@ function iguais(a, b) {
   return dif === 0;
 }
 
-export async function onRequest({ request, env, next }) {
-  if (env.ACCESS_CODE) {
+async function prepararBanco(db) {
+  await db.batch([db.prepare(SCHEMA), db.prepare(INDICE)]);
+  for (const sql of MIGRACOES) {
+    try {
+      await db.prepare(sql).run();
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e.message || e))) throw e;
+    }
+  }
+}
+
+export async function onRequest(context) {
+  const { request, env, next, data } = context;
+  const caminho = new URL(request.url).pathname;
+
+  // rotas de login ficam livres
+  if (caminho.startsWith("/api/auth/")) return next();
+
+  if (googleAtivo(env)) {
+    const usuario = await lerSessao(request, env);
+    if (!usuario) return erro("Faça login com o Google", 401);
+    data.usuario = usuario;
+  } else if (env.ACCESS_CODE) {
     const enviado = request.headers.get("X-Access-Code") || "";
     if (!iguais(enviado, String(env.ACCESS_CODE))) return erro("Código de acesso inválido", 401);
   }
@@ -25,12 +50,11 @@ export async function onRequest({ request, env, next }) {
     return erro("Banco de dados não configurado: crie o binding D1 com o nome DB no Cloudflare Pages.", 500);
   }
 
-  if (!tabelaPronta) {
-    await env.DB.batch([env.DB.prepare(SCHEMA), env.DB.prepare(INDICE)]);
-    tabelaPronta = true;
-  }
-
   try {
+    if (!tabelaPronta) {
+      await prepararBanco(env.DB);
+      tabelaPronta = true;
+    }
     return await next();
   } catch (e) {
     console.error(e);

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS registros (
   gasto REAL,                    -- R$
   observacoes TEXT,
   criado_em TEXT NOT NULL DEFAULT (datetime('now')),
-  atualizado_em TEXT
+  atualizado_em TEXT,
+  criado_por TEXT,               -- e-mail Google de quem lançou
+  atualizado_por TEXT            -- e-mail Google da última edição
 );
 CREATE INDEX IF NOT EXISTS idx_registros_data ON registros (data DESC);

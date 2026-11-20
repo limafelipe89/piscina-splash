@@ -23,6 +23,12 @@ export const SCHEMA = `CREATE TABLE IF NOT EXISTS registros (
 
 export const INDICE = "CREATE INDEX IF NOT EXISTS idx_registros_data ON registros (data DESC)";
 
+// Colunas adicionadas depois da primeira versão (erro de coluna duplicada é ignorado).
+export const MIGRACOES = [
+  "ALTER TABLE registros ADD COLUMN criado_por TEXT",
+  "ALTER TABLE registros ADD COLUMN atualizado_por TEXT",
+];
+
 export function json(dados, status = 200) {
   return new Response(JSON.stringify(dados), {
     status,

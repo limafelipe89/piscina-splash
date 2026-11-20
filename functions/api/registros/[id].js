@@ -15,7 +15,7 @@ export async function onRequestGet({ params, env }) {
   return r ? json({ registro: saida(r) }) : erro("Registro não encontrado", 404);
 }
 
-export async function onRequestPut({ params, request, env }) {
+export async function onRequestPut({ params, request, env, data }) {
   const id = lerId(params);
   if (!id) return erro("ID inválido");
   let r;
@@ -28,12 +28,12 @@ export async function onRequestPut({ params, request, env }) {
     `UPDATE registros SET
        data = ?, hora = ?, tipo = ?, responsavel = ?, cloro = ?, ph = ?, alcalinidade = ?,
        temperatura = ?, tarefas = ?, produtos = ?, gasto = ?, observacoes = ?,
-       atualizado_em = datetime('now')
+       atualizado_em = datetime('now'), atualizado_por = ?
      WHERE id = ?
      RETURNING *`
   ).bind(
     r.data, r.hora, r.tipo, r.responsavel, r.cloro, r.ph, r.alcalinidade,
-    r.temperatura, r.tarefas, r.produtos, r.gasto, r.observacoes, id
+    r.temperatura, r.tarefas, r.produtos, r.gasto, r.observacoes, data.usuario?.email || null, id
   ).first();
   return res ? json({ registro: saida(res) }) : erro("Registro não encontrado", 404);
 }
