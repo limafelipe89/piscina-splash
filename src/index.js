@@ -8,6 +8,9 @@ import * as login from "../functions/api/auth/login.js";
 import * as callback from "../functions/api/auth/callback.js";
 import * as me from "../functions/api/auth/me.js";
 import * as logout from "../functions/api/auth/logout.js";
+import * as acessos from "../functions/api/acessos/index.js";
+import * as custos from "../functions/api/custos/index.js";
+import * as custoId from "../functions/api/custos/[id].js";
 
 const ROTAS = [
   [/^\/api\/registros\/?$/, registros, []],
@@ -16,6 +19,9 @@ const ROTAS = [
   [/^\/api\/auth\/callback\/?$/, callback, []],
   [/^\/api\/auth\/me\/?$/, me, []],
   [/^\/api\/auth\/logout\/?$/, logout, []],
+  [/^\/api\/acessos\/?$/, acessos, []],
+  [/^\/api\/custos\/?$/, custos, []],
+  [/^\/api\/custos\/([^/]+)\/?$/, custoId, ["id"]],
 ];
 
 function respostaJson(dados, status) {

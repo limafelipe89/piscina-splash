@@ -5,7 +5,9 @@ Site para o celular com o guia de tratamento da piscina (Splash Italiana, 44.800
 - **Endereço:** https://manutencaopiscina.felipe-488.workers.dev
 - **Hospedagem:** Cloudflare Worker com arquivos estáticos (deploy automático a cada push na `main`, configurado em `wrangler.jsonc`)
 - **Banco:** Cloudflare D1 (binding `DB`), tabela criada automaticamente
-- **Acesso:** login com Google, só para os e-mails da lista `ALLOWED_EMAILS` (cada registro guarda o e-mail de quem lançou e de quem editou)
+- **Acesso:** login com Google. Quem não está liberado pede acesso ao entrar; o administrador (`ALLOWED_EMAILS` / `ADMIN_EMAILS`) libera ou recusa na tela **Acessos** (menu da foto). Cada registro guarda quem lançou e quem editou
+- **Custos:** aba para lançar compras (data, quem comprou, produto, quantidade, valor, loja) com total do mês, total por pessoa e CSV para prestação de contas
+- **Cores:** azul #2A519F, preto #1B1B1C, cinza #666666
 - **Sem internet:** registros novos ficam no celular e são enviados quando a conexão voltar
 
 ## Estrutura
@@ -24,6 +26,10 @@ functions/api/          API (Cloudflare Pages Functions)
   auth/callback.js      volta do Google, confere o e-mail e cria a sessão
   auth/me.js            quem está logado
   auth/logout.js        sair
+  acessos/index.js      pedidos de acesso e membros (só administrador)
+  custos/index.js       GET lista · POST lança compra
+  custos/[id].js        PUT · DELETE
+  _db.js                criação das tabelas registros, acessos e custos
   registros/index.js    GET lista · POST cria
   registros/[id].js     GET · PUT · DELETE
 schema.sql              referência da tabela
@@ -55,9 +61,9 @@ O Worker `manutencaopiscina` está ligado a este repositório (Settings → Buil
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | Text | ID do cliente |
 | `GOOGLE_CLIENT_SECRET` | Secret | Chave secreta do cliente |
-| `ALLOWED_EMAILS` | Text | e-mails autorizados separados por vírgula, ex.: `voce@gmail.com, outra@gmail.com` |
+| `ALLOWED_EMAILS` | Text | e-mail(s) do **administrador**, que aprova novos membros (ex.: `lima.felipe@gmail.com`) |
 
-As variáveis valem a partir do próximo deploy (salvar no painel já gera um). Para incluir ou tirar alguém, edite `ALLOWED_EMAILS` e salve; quem sair da lista perde o acesso na hora.
+As variáveis valem a partir do próximo deploy (salvar no painel já gera um). Os demais membros não entram nessa variável: eles pedem acesso pelo próprio login e o administrador libera na tela **Acessos**. Remover alguém corta o acesso na hora.
 
 > Sem `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, o site usa o código de acesso `ACCESS_CODE` (se existir) ou fica aberto.
 

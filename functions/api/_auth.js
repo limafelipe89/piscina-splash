@@ -3,7 +3,9 @@
 // Variáveis no Cloudflare Pages:
 //   GOOGLE_CLIENT_ID      ID do cliente OAuth (Google Cloud)
 //   GOOGLE_CLIENT_SECRET  segredo do cliente OAuth (tipo Secret)
-//   ALLOWED_EMAILS        e-mails autorizados, separados por vírgula
+//   ADMIN_EMAILS          administradores (aprovam novos membros), separados por vírgula
+//   ALLOWED_EMAILS        nome antigo de ADMIN_EMAILS (usado se ADMIN_EMAILS não existir)
+// Demais pessoas pedem acesso pelo próprio login e ficam na tabela `acessos` até o admin liberar.
 //   SESSION_SECRET        opcional; se ausente, usa GOOGLE_CLIENT_SECRET para assinar a sessão
 
 export const COOKIE_SESSAO = "piscina_sessao";
@@ -69,17 +71,21 @@ export async function lerSessao(request, env) {
     if (!ok) return null;
     const dados = JSON.parse(dec.decode(deB64url(corpo)));
     if (!dados.exp || dados.exp < Date.now() / 1000) return null;
-    if (!emailPermitido(env, dados.email)) return null; // remover da lista corta o acesso na hora
-    return { email: dados.email, nome: dados.nome, foto: dados.foto };
+    const usuario = { email: dados.email, nome: dados.nome, foto: dados.foto, admin: ehAdmin(env, dados.email) };
+    if (usuario.admin) return usuario;
+    // membro comum: precisa continuar aprovado (remover ou recusar corta o acesso na hora)
+    if (!env.DB) return null;
+    const linha = await env.DB.prepare("SELECT status FROM acessos WHERE email = ?").bind(dados.email).first();
+    return linha && linha.status === "aprovado" ? usuario : null;
   } catch {
     return null;
   }
 }
 
-/* ---------- lista de autorizados ---------- */
-export function emailPermitido(env, email) {
+/* ---------- administradores ---------- */
+export function ehAdmin(env, email) {
   if (!email) return false;
-  const lista = String(env.ALLOWED_EMAILS || "")
+  const lista = String(env.ADMIN_EMAILS || env.ALLOWED_EMAILS || "")
     .split(/[,;\s]+/)
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);

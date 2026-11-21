@@ -47,6 +47,7 @@ const LS = {
   pendentes: "piscina.pendentes",
   responsavel: "piscina.responsavel",
   acesso: "piscina.acesso",
+  custos: "piscina.custos",
 };
 
 /* =========================================================
@@ -203,6 +204,8 @@ let acesso = lerLS(LS.acesso, { modo: null, usuario: null });
 
 const ERROS_LOGIN = {
   nao_autorizado: "Este e-mail não está autorizado. Peça para incluírem você na lista.",
+  aguardando: "Pedido de acesso enviado. Assim que o administrador liberar, toque em Entrar com Google de novo.",
+  recusado: "Seu acesso não foi liberado pelo administrador.",
   login_cancelado: "Login cancelado.",
   login_expirado: "O login demorou demais. Tente de novo.",
   login_falhou: "Não foi possível concluir o login. Tente de novo.",
@@ -234,6 +237,20 @@ function renderUsuario() {
     foto.hidden = true;
     $("#usuario-inicial").textContent = (u.nome || u.email || "?")[0].toUpperCase();
   }
+  renderPedidosAcesso();
+}
+
+function renderPedidosAcesso() {
+  const admin = !!(acesso.usuario && acesso.usuario.admin);
+  const n = admin ? Number(acesso.pendentes || 0) : 0;
+  $("#botao-acessos").hidden = !admin;
+  $("#botao-acessos").textContent = n ? `Gerenciar acessos (${n})` : "Gerenciar acessos";
+  const badge = $("#usuario-badge");
+  badge.hidden = !n;
+  badge.textContent = n;
+  const aviso = $("#aviso-acessos");
+  aviso.hidden = !n;
+  aviso.textContent = n === 1 ? "1 pessoa pediu acesso ao site. Toque para liberar ou recusar." : `${n} pessoas pediram acesso ao site. Toque para liberar ou recusar.`;
 }
 
 // Retorna true se o app pode carregar os dados.
@@ -254,11 +271,18 @@ async function verificarAcesso() {
 
   if (acesso.modo === "google" && !acesso.usuario) {
     let msg = ERROS_LOGIN[erroURL] || "";
-    if (erroURL === "nao_autorizado" && params.get("email")) {
-      msg = `O e-mail ${params.get("email")} não está autorizado. Peça para incluírem você na lista.`;
+    const emailURL = params.get("email");
+    if (erroURL === "aguardando" && emailURL) {
+      msg = `Pedido de acesso de ${emailURL} enviado. Assim que o administrador liberar, toque em Entrar com Google de novo.`;
+    } else if (erroURL === "recusado" && emailURL) {
+      msg = `O acesso de ${emailURL} não foi liberado pelo administrador.`;
+    } else if (erroURL === "nao_autorizado" && emailURL) {
+      msg = `O e-mail ${emailURL} não está autorizado.`;
     }
     registros = [];
+    custos = [];
     gravarLS(LS.cache, []);
+    gravarLS(LS.custos, []);
     mostrarLogin(msg);
     return false;
   }
@@ -271,6 +295,7 @@ async function verificarAcesso() {
    ========================================================= */
 let registros = lerLS(LS.cache, []);
 let pendentes = lerLS(LS.pendentes, []);
+let custos = lerLS(LS.custos, []);
 
 function todos() {
   const pend = pendentes.map((p) => ({ ...p, _pendente: true }));
@@ -281,9 +306,11 @@ function todos() {
 
 async function carregar() {
   try {
-    const dados = await api("/api/registros?limite=500");
+    const [dados, dc] = await Promise.all([api("/api/registros?limite=500"), api("/api/custos")]);
     registros = dados.registros || [];
+    custos = dc.custos || [];
     gravarLS(LS.cache, registros);
+    gravarLS(LS.custos, custos);
   } catch (e) {
     if (!(e instanceof ErroRede)) toast(e.message);
   }
@@ -310,10 +337,12 @@ async function sincronizar() {
 /* =========================================================
    Navegação
    ========================================================= */
-const TITULOS = { inicio: "Início", guia: "Guia", checklist: "Checklist", historico: "Histórico" };
+const TITULOS = { inicio: "Início", guia: "Guia", checklist: "Checklist", custos: "Custos", historico: "Histórico", acessos: "Acessos" };
 
 function irPara(aba, { rolar = true } = {}) {
   if (!TITULOS[aba]) aba = "inicio";
+  if (aba === "acessos" && !(acesso.usuario && acesso.usuario.admin)) aba = "inicio";
+  if (aba === "acessos") carregarAcessos();
   $$(".aba").forEach((s) => (s.hidden = s.id !== `aba-${aba}`));
   $$(".abas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   $("#titulo-aba").textContent = TITULOS[aba];
@@ -371,7 +400,8 @@ function renderInicio() {
   const mes = hojeISO().slice(0, 7);
   const doMes = lista.filter((r) => (r.data || "").startsWith(mes));
   $("#res-registros").textContent = doMes.length;
-  $("#res-gasto").textContent = brl(doMes.reduce((s, r) => s + (Number(r.gasto) || 0), 0)).replace(",00", "");
+  const gastoMes = custos.filter((c) => (c.data || "").startsWith(mes)).reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  $("#res-gasto").textContent = brl(gastoMes).replace(",00", "");
   const ultManut = lista.find((r) => r.tipo === "manutencao");
   const d = ultManut ? diasDesde(ultManut.data) : null;
   $("#res-dias").textContent = d === null ? "–" : d;
@@ -599,6 +629,249 @@ function exportarCSV() {
 }
 
 /* =========================================================
+   Custos (prestação de contas)
+   ========================================================= */
+const NOMES_MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+let mesCustos = hojeISO().slice(0, 7);
+
+function rotuloMes(ym) {
+  if (ym === "todos") return "Todo o período";
+  const [a, m] = ym.split("-");
+  return `${NOMES_MES[+m - 1]} de ${a}`;
+}
+
+function custosDoPeriodo() {
+  return custos.filter((c) => mesCustos === "todos" || (c.data || "").startsWith(mesCustos));
+}
+
+function renderMesesCustos() {
+  const sel = $("#custo-mes");
+  const meses = new Set([hojeISO().slice(0, 7), ...custos.map((c) => (c.data || "").slice(0, 7)).filter(Boolean)]);
+  const lista = [...meses].sort().reverse();
+  if (!lista.includes(mesCustos) && mesCustos !== "todos") mesCustos = lista[0];
+  sel.innerHTML = lista.map((m) => `<option value="${m}">${esc(rotuloMes(m))}</option>`).join("") +
+    `<option value="todos">Todo o período</option>`;
+  sel.value = mesCustos;
+}
+
+function renderCustos() {
+  renderMesesCustos();
+  const doPeriodo = custosDoPeriodo();
+  const total = doPeriodo.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  $("#custo-total").textContent = brl(total);
+  $("#custo-qtd").textContent = doPeriodo.length
+    ? `${doPeriodo.length} compra(s) · ${rotuloMes(mesCustos)}`
+    : `Nenhuma compra em ${rotuloMes(mesCustos)}`;
+
+  // total por pessoa
+  const porPessoa = {};
+  for (const c of doPeriodo) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + (Number(c.valor) || 0);
+  const ordem = Object.entries(porPessoa).sort((a, b) => b[1] - a[1]);
+  $("#custo-por-pessoa").innerHTML = ordem.map(([nome, v]) => `
+    <li><span>${esc(nome)}</span><strong>${brl(v)}</strong>
+      <span class="barra"><span style="width:${total ? Math.max(3, (v / total) * 100) : 0}%"></span></span></li>`).join("");
+  $("#custo-exportar").hidden = !doPeriodo.length;
+
+  // lista agrupada por dia
+  const box = $("#lista-custos");
+  if (!doPeriodo.length) { box.innerHTML = ""; return; }
+  let html = "";
+  let diaAtual = "";
+  for (const c of doPeriodo) {
+    if (c.data !== diaAtual) { diaAtual = c.data; html += `<p class="custo-dia">${esc(dataBR(c.data))}</p>`; }
+    const detalhes = [c.quantidade, c.loja].filter(Boolean).map(esc).join(" · ");
+    html += `<details class="custo">
+      <summary class="custo-topo"><strong>${esc(c.produto)}</strong><span class="custo-valor">${brl(c.valor)}</span></summary>
+      <div class="muted">${esc(c.comprador)}${detalhes ? " · " + detalhes : ""}</div>
+      ${c.observacoes ? `<div class="muted">${esc(c.observacoes)}</div>` : ""}
+      ${c.criado_por ? `<div class="muted">Lançado por ${esc(c.criado_por)}${c.atualizado_por ? ` · editado por ${esc(c.atualizado_por)}` : ""}</div>` : ""}
+      <div class="reg-acoes">
+        <button type="button" class="botao botao-sec botao-peq" data-editar-custo="${c.id}">Editar</button>
+        <button type="button" class="botao botao-perigo botao-peq" data-excluir-custo="${c.id}">Excluir</button>
+      </div>
+    </details>`;
+  }
+  box.innerHTML = html;
+}
+
+function novoCusto() {
+  const f = $("#form-custo");
+  f.reset();
+  f.id.value = "";
+  f.data.value = hojeISO();
+  f.comprador.value = lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
+  $("#custo-form-titulo").textContent = "Lançar compra";
+  $("#custo-salvar").textContent = "Lançar compra";
+  $("#custo-cancelar").hidden = true;
+}
+
+function editarCusto(c) {
+  const f = $("#form-custo");
+  f.id.value = c.id;
+  f.data.value = c.data;
+  f.comprador.value = c.comprador || "";
+  f.produto.value = c.produto || "";
+  f.quantidade.value = c.quantidade || "";
+  f.valor.value = String(c.valor).replace(".", ",");
+  f.loja.value = c.loja || "";
+  f.observacoes.value = c.observacoes || "";
+  $("#custo-form-titulo").textContent = "Editar compra";
+  $("#custo-salvar").textContent = "Salvar alterações";
+  $("#custo-cancelar").hidden = false;
+  f.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function lerValorBR(txt) {
+  const s = String(txt || "").replace(/[R$\s]/g, "");
+  if (!s) return null;
+  const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+async function salvarCusto(ev) {
+  ev.preventDefault();
+  const f = $("#form-custo");
+  const dados = {
+    data: f.data.value,
+    comprador: f.comprador.value.trim(),
+    produto: f.produto.value.trim(),
+    quantidade: f.quantidade.value.trim() || null,
+    valor: lerValorBR(f.valor.value),
+    loja: f.loja.value.trim() || null,
+    observacoes: f.observacoes.value.trim() || null,
+  };
+  if (!dados.data) return toast("Informe a data");
+  if (!dados.comprador) return toast("Informe quem comprou");
+  if (!dados.produto) return toast("Informe o produto");
+  if (!dados.valor || Number.isNaN(dados.valor) || dados.valor <= 0) return toast("Informe o valor");
+
+  const botao = $("#custo-salvar");
+  botao.disabled = true;
+  try {
+    if (f.id.value) {
+      await api(`/api/custos/${f.id.value}`, { method: "PUT", body: JSON.stringify(dados) });
+      toast("Compra atualizada");
+    } else {
+      dados.client_id = uuid();
+      await api("/api/custos", { method: "POST", body: JSON.stringify(dados) });
+      toast("Compra lançada");
+    }
+    gravarLS(LS.responsavel, dados.comprador);
+    mesCustos = dados.data.slice(0, 7);
+    novoCusto();
+    await carregar();
+  } catch (e) {
+    toast(e instanceof ErroRede ? "Sem internet: a compra não foi lançada" : e.message);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function excluirCusto(id) {
+  if (!confirm("Excluir este lançamento? Essa ação não pode ser desfeita.")) return;
+  try {
+    await api(`/api/custos/${id}`, { method: "DELETE" });
+    toast("Lançamento excluído");
+    await carregar();
+  } catch (e) {
+    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+  }
+}
+
+function exportarCustosCSV() {
+  const lista = custosDoPeriodo();
+  if (!lista.length) return toast("Nada para exportar");
+  const cel = (v) => {
+    if (v === null || v === undefined) return "";
+    const s = typeof v === "number" ? v.toFixed(2).replace(".", ",") : String(v);
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const cab = ["Data", "Quem comprou", "Produto", "Quantidade", "Valor (R$)", "Loja", "Observação"];
+  const linhas = [...lista].reverse().map((c) =>
+    [c.data, c.comprador, c.produto, c.quantidade, Number(c.valor), c.loja, c.observacoes].map(cel).join(";"));
+  const total = lista.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  linhas.push(["", "", "TOTAL", "", total, "", ""].map(cel).join(";"));
+  const porPessoa = {};
+  for (const c of lista) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + Number(c.valor || 0);
+  linhas.push("");
+  for (const [nome, v] of Object.entries(porPessoa)) linhas.push(["", nome, "Total da pessoa", "", v, "", ""].map(cel).join(";"));
+  const blob = new Blob(["﻿" + [cab.join(";"), ...linhas].join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `piscina-custos-${mesCustos}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* =========================================================
+   Acessos (somente administrador)
+   ========================================================= */
+let acessos = [];
+
+function avatarHTML(p) {
+  const ini = esc((p.nome || p.email || "?")[0].toUpperCase());
+  return `<span class="pessoa-foto">${p.foto ? `<img src="${esc(p.foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}${p.foto ? "" : ini}</span>`;
+}
+
+function pessoaHTML(p, botoes) {
+  const quando = p.status === "pendente"
+    ? `pediu em ${esc(dataHoraBR(p.solicitado_em))}`
+    : p.ultimo_acesso ? `último acesso ${esc(dataHoraBR(p.ultimo_acesso))}` : (p.decidido_em ? `liberado em ${esc(dataHoraBR(p.decidido_em))}` : "");
+  return `<div class="pessoa">
+    ${avatarHTML(p)}
+    <div class="pessoa-info"><strong>${esc(p.nome || p.email)}</strong><small>${esc(p.email)}${quando ? " · " + quando : ""}</small></div>
+    <div class="reg-acoes">${botoes}</div>
+  </div>`;
+}
+
+function dataHoraBR(sqlUTC) {
+  if (!sqlUTC) return "";
+  const d = new Date(sqlUTC.replace(" ", "T") + "Z");
+  return Number.isNaN(d.getTime()) ? sqlUTC : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function botaoAcao(email, acao, texto, classe) {
+  return `<button type="button" class="botao ${classe} botao-peq" data-acesso="${esc(acao)}" data-email="${esc(email)}">${texto}</button>`;
+}
+
+function renderAcessos(admins = []) {
+  const pend = acessos.filter((a) => a.status === "pendente");
+  const aprov = acessos.filter((a) => a.status === "aprovado");
+  const rec = acessos.filter((a) => a.status === "recusado");
+  $("#acessos-pendentes").innerHTML = pend.length
+    ? pend.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "") + botaoAcao(p.email, "recusar", "Recusar", "botao-perigo"))).join("")
+    : '<p class="muted">Nenhum pedido no momento.</p>';
+  const adminsHTML = admins.map((e) => pessoaHTML({ email: e, nome: e === acesso.usuario?.email ? acesso.usuario.nome : e, foto: e === acesso.usuario?.email ? acesso.usuario.foto : null, status: "admin" }, '<span class="muted">Administrador</span>')).join("");
+  $("#acessos-aprovados").innerHTML = adminsHTML + aprov.map((p) => pessoaHTML(p, botaoAcao(p.email, "remover", "Remover acesso", "botao-perigo"))).join("");
+  $("#card-recusados").hidden = !rec.length;
+  $("#acessos-recusados").innerHTML = rec.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "botao-sec") + botaoAcao(p.email, "remover", "Apagar", "botao-perigo"))).join("");
+  acesso.pendentes = pend.length;
+  renderPedidosAcesso();
+}
+
+async function carregarAcessos() {
+  try {
+    const d = await api("/api/acessos");
+    acessos = d.acessos || [];
+    renderAcessos(d.admins || []);
+  } catch (e) {
+    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+  }
+}
+
+async function acaoAcesso(email, acao) {
+  if (acao === "remover" && !confirm(`Remover o acesso de ${email}?`)) return;
+  try {
+    await api("/api/acessos", { method: "POST", body: JSON.stringify({ email, acao }) });
+    toast(acao === "aprovar" ? "Acesso liberado" : acao === "recusar" ? "Pedido recusado" : "Acesso removido");
+    await carregarAcessos();
+  } catch (e) {
+    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+  }
+}
+
+/* =========================================================
    Render geral e eventos
    ========================================================= */
 function renderResponsaveis() {
@@ -607,6 +880,7 @@ function renderResponsaveis() {
 }
 
 function renderTudo() {
+  renderCustos();
   renderInicio();
   renderHistorico();
   renderResponsaveis();
@@ -656,6 +930,33 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ex) excluir(ex.dataset.excluir);
   });
 
+  // custos
+  $("#form-custo").addEventListener("submit", salvarCusto);
+  $("#custo-cancelar").addEventListener("click", novoCusto);
+  $("#custo-mes").addEventListener("change", (e) => { mesCustos = e.target.value; renderCustos(); });
+  $("#custo-exportar").addEventListener("click", exportarCustosCSV);
+  $("#lista-custos").addEventListener("click", (e) => {
+    const ed = e.target.closest("[data-editar-custo]");
+    const ex = e.target.closest("[data-excluir-custo]");
+    if (ed) { const c = custos.find((x) => String(x.id) === ed.dataset.editarCusto); if (c) editarCusto(c); }
+    if (ex) excluirCusto(ex.dataset.excluirCusto);
+  });
+
+  // acessos
+  $("#botao-acessos").addEventListener("click", () => { $("#menu-usuario").hidden = true; irPara("acessos"); });
+  $("#aviso-acessos").addEventListener("click", () => irPara("acessos"));
+  $("#aba-acessos").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-acesso]");
+    if (b) acaoAcesso(b.dataset.email, b.dataset.acesso);
+  });
+  $("#form-convite").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = e.target.email.value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast("E-mail inválido");
+    e.target.reset();
+    acaoAcesso(email, "aprovar");
+  });
+
   // rede
   window.addEventListener("online", () => { atualizarRede(); sincronizar().then(carregar); });
   window.addEventListener("offline", atualizarRede);
@@ -677,6 +978,8 @@ document.addEventListener("DOMContentLoaded", () => {
   renderTudo();
   verificarAcesso().then((ok) => {
     novoRegistro();
+    novoCusto();
+    if (ok && location.hash === "#acessos") irPara("acessos");
     if (ok) sincronizar().then(carregar);
   });
 

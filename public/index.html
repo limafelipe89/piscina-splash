@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Piscina Splash · Tratamento</title>
-  <meta name="theme-color" content="#0b4f5c">
+  <meta name="theme-color" content="#2a519f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -24,12 +24,14 @@
         <button type="button" id="botao-usuario" class="usuario" hidden aria-haspopup="true" aria-expanded="false">
           <img id="usuario-foto" alt="" referrerpolicy="no-referrer" hidden>
           <span id="usuario-inicial" aria-hidden="true"></span>
+          <span id="usuario-badge" class="badge" hidden></span>
           <span class="sr">Conta</span>
         </button>
       </div>
     </div>
     <div id="menu-usuario" class="menu-usuario" hidden>
       <p><strong id="usuario-nome"></strong><br><small id="usuario-email"></small></p>
+      <button type="button" id="botao-acessos" class="botao botao-sec botao-peq" hidden>Gerenciar acessos</button>
       <a class="botao botao-sec botao-peq" href="/api/auth/logout">Sair</a>
     </div>
   </header>
@@ -49,6 +51,7 @@
     <!-- ============ INÍCIO ============ -->
     <section id="aba-inicio" class="aba ativa" aria-labelledby="tab-inicio">
       <div id="pendentes-aviso" class="aviso aviso-info" hidden></div>
+      <button type="button" id="aviso-acessos" class="aviso aviso-alerta aviso-botao" hidden></button>
 
       <article class="card">
         <div class="card-cab">
@@ -80,7 +83,7 @@
         <h2>Resumo do mês</h2>
         <div class="resumo">
           <div><span id="res-registros" class="num">0</span><small>registros</small></div>
-          <div><span id="res-gasto" class="num">R$ 0</span><small>gasto lançado</small></div>
+          <div><span id="res-gasto" class="num">R$ 0</span><small>gasto em compras</small></div>
           <div><span id="res-dias" class="num">–</span><small>dias desde a última manutenção</small></div>
         </div>
       </article>
@@ -288,15 +291,12 @@
         </article>
 
         <article class="card">
-          <h2>Produtos e gastos</h2>
+          <h2>Produtos e observações</h2>
           <label class="campo">
             <span>Produtos aplicados e quantidades</span>
             <textarea name="produtos" rows="3" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador; 150 g de elevador de pH"></textarea>
           </label>
-          <label class="campo">
-            <span>Valor gasto (compras) <small>R$</small></span>
-            <input type="text" inputmode="decimal" name="gasto" placeholder="0,00" autocomplete="off">
-          </label>
+          <input type="hidden" name="gasto">
           <label class="campo">
             <span>Observações</span>
             <textarea name="observacoes" rows="3" maxlength="2000" placeholder="Cor da água, chuva, uso intenso, ruídos na bomba…"></textarea>
@@ -324,6 +324,100 @@
         <p class="muted">Carregando…</p>
       </div>
     </section>
+
+    <!-- ============ CUSTOS ============ -->
+    <section id="aba-custos" class="aba" aria-labelledby="tab-custos" hidden>
+      <article class="card">
+        <div class="card-cab">
+          <h2>Prestação de contas</h2>
+          <select id="custo-mes" class="mes" aria-label="Mês"></select>
+        </div>
+        <div class="total-mes">
+          <small>Total do período</small>
+          <strong id="custo-total">R$ 0,00</strong>
+          <small id="custo-qtd" class="muted"></small>
+        </div>
+        <ul id="custo-por-pessoa" class="por-pessoa"></ul>
+        <button type="button" id="custo-exportar" class="botao botao-sec botao-peq">Exportar CSV do período</button>
+      </article>
+
+      <form id="form-custo" class="card form-custo" novalidate>
+        <input type="hidden" name="id">
+        <div class="card-cab">
+          <h2 id="custo-form-titulo">Lançar compra</h2>
+          <button type="button" id="custo-cancelar" class="link" hidden>Cancelar edição</button>
+        </div>
+        <div class="grade2">
+          <label class="campo">
+            <span>Data da compra</span>
+            <input type="date" name="data" required>
+          </label>
+          <label class="campo">
+            <span>Valor <small>R$</small></span>
+            <input type="text" inputmode="decimal" name="valor" placeholder="0,00" autocomplete="off" required>
+          </label>
+        </div>
+        <label class="campo">
+          <span>Quem comprou</span>
+          <input type="text" name="comprador" list="lista-responsaveis" maxlength="60" placeholder="Nome" required>
+        </label>
+        <label class="campo">
+          <span>Produto</span>
+          <input type="text" name="produto" list="lista-produtos" maxlength="120" placeholder="ex.: Pastilha de tricloro 200 g" required>
+          <datalist id="lista-produtos">
+            <option value="Pastilha de tricloro 200 g">
+            <option value="Cloro granulado">
+            <option value="Elevador de pH">
+            <option value="Redutor de pH">
+            <option value="Ajustador de alcalinidade">
+            <option value="Algicida">
+            <option value="Clarificante">
+            <option value="Reagentes do kit de teste">
+            <option value="Kit de teste">
+            <option value="Dosador flutuante">
+            <option value="Peça / manutenção do equipamento">
+          </datalist>
+        </label>
+        <div class="grade2">
+          <label class="campo">
+            <span>Quantidade</span>
+            <input type="text" name="quantidade" maxlength="40" placeholder="ex.: 10 un, 1 kg">
+          </label>
+          <label class="campo">
+            <span>Loja</span>
+            <input type="text" name="loja" maxlength="80" placeholder="Opcional">
+          </label>
+        </div>
+        <label class="campo">
+          <span>Observação</span>
+          <input type="text" name="observacoes" maxlength="1000" placeholder="Opcional">
+        </label>
+        <button type="submit" class="botao" id="custo-salvar">Lançar compra</button>
+      </form>
+
+      <div id="lista-custos" class="historico"></div>
+    </section>
+
+    <!-- ============ ACESSOS (somente administrador) ============ -->
+    <section id="aba-acessos" class="aba" hidden>
+      <article class="card">
+        <h2>Pedidos aguardando</h2>
+        <div id="acessos-pendentes" class="lista-acessos"><p class="muted">Carregando…</p></div>
+      </article>
+      <article class="card">
+        <h2>Pessoas com acesso</h2>
+        <div id="acessos-aprovados" class="lista-acessos"></div>
+        <form id="form-convite" class="convite" novalidate>
+          <input type="email" name="email" placeholder="e-mail@gmail.com" autocomplete="off" required>
+          <button class="botao botao-peq" type="submit">Liberar</button>
+        </form>
+        <p class="muted">Liberar um e-mail aqui dá acesso antes mesmo de a pessoa pedir.</p>
+      </article>
+      <article class="card" id="card-recusados" hidden>
+        <h2>Recusados</h2>
+        <div id="acessos-recusados" class="lista-acessos"></div>
+      </article>
+    </section>
   </main>
 
   <nav class="abas" role="tablist">
@@ -338,6 +432,10 @@
     <button role="tab" id="tab-checklist" data-aba="checklist" aria-selected="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10M9 12h10M9 19h10M3.5 5l1.5 1.5L7.5 4M3.5 12l1.5 1.5L7.5 11M3.5 19l1.5 1.5L7.5 18"/></svg>
       <span>Checklist</span>
+    </button>
+    <button role="tab" id="tab-custos" data-aba="custos" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 7l2-3h14l2 3M12 10.5v6M14.2 11.6c-.4-.6-1.2-1-2.2-1-1.3 0-2.2.6-2.2 1.5 0 2.1 4.6 1 4.6 3.2 0 .9-1 1.6-2.4 1.6-1 0-1.9-.4-2.3-1"/></svg>
+      <span>Custos</span>
     </button>
     <button role="tab" id="tab-historico" data-aba="historico" aria-selected="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4"/></svg>

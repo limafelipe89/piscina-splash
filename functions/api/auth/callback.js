@@ -1,6 +1,7 @@
 // GET /api/auth/callback → o Google volta aqui com ?code=…&state=…
+import { garantirBanco } from "../_db.js";
 import {
-  googleAtivo, lerCookie, cookie, redirecionar, lerIdToken, emailPermitido, criarSessao,
+  googleAtivo, lerCookie, cookie, redirecionar, lerIdToken, ehAdmin, criarSessao,
   COOKIE_OAUTH, COOKIE_SESSAO,
 } from "../_auth.js";
 
@@ -43,8 +44,23 @@ export async function onRequestGet({ request, env }) {
     return falha("login_falhou");
   }
 
-  if (!emailPermitido(env, usuario.email)) {
-    return falha(`nao_autorizado&email=${encodeURIComponent(usuario.email)}`);
+  if (!ehAdmin(env, usuario.email)) {
+    await garantirBanco(env);
+    const db = env.DB;
+    const linha = await db.prepare("SELECT status FROM acessos WHERE email = ?").bind(usuario.email).first();
+    const email = encodeURIComponent(usuario.email);
+
+    if (!linha) {
+      await db.prepare("INSERT INTO acessos (email, nome, foto, status) VALUES (?, ?, ?, 'pendente')")
+        .bind(usuario.email, usuario.nome, usuario.foto).run();
+      return falha(`aguardando&email=${email}`);
+    }
+    // mantém nome e foto atualizados
+    await db.prepare("UPDATE acessos SET nome = ?, foto = ? WHERE email = ?")
+      .bind(usuario.nome, usuario.foto, usuario.email).run();
+    if (linha.status === "pendente") return falha(`aguardando&email=${email}`);
+    if (linha.status !== "aprovado") return falha(`recusado&email=${email}`);
+    await db.prepare("UPDATE acessos SET ultimo_acesso = datetime('now') WHERE email = ?").bind(usuario.email).run();
   }
 
   const sessao = await criarSessao(env, usuario);
