@@ -1,6 +1,6 @@
 // Service worker: rede primeiro, cache como reserva (funciona sem internet na beira da piscina).
 // A API nunca é cacheada aqui; o app guarda os registros no próprio celular.
-const CACHE = "piscina-v3";
+const CACHE = "piscina-v4";
 const ARQUIVOS = ["/", "/index.html", "/styles.css", "/app.js", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
@@ -18,8 +18,9 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  // "no-cache" revalida com o servidor: evita mostrar versão antiga depois de um deploy
   e.respondWith(
-    fetch(e.request)
+    fetch(url.href, { cache: "no-cache", credentials: "same-origin" })
       .then((resp) => {
         if (resp.ok) {
           const copia = resp.clone();

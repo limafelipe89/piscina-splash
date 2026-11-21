@@ -985,6 +985,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    const tinhaControle = !!navigator.serviceWorker.controller;
+    let recarregou = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      // nova versão do site publicada: recarrega uma vez para usar os arquivos novos
+      if (tinhaControle && !recarregou) { recarregou = true; location.reload(); }
+    });
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {});
   }
 });
