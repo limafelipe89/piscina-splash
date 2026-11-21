@@ -7,6 +7,7 @@
 const TAREFAS = [
   ["detritos", "Tirei folhas e sujeira da água"],
   ["escovar", "Escovei paredes e fundo"],
+  ["bordas", "Limpei as bordas"],
   ["aspirar", "Aspirei o fundo"],
   ["filtro", "Limpei o cesto e o filtro"],
   ["dosador", "Conferi as pastilhas no dosador"],
@@ -461,7 +462,12 @@ function mostrarPasso(n) {
   $("#passo-voltar").textContent = n === 1 ? "Cancelar" : "Voltar";
   $("#passo-proximo").hidden = n === 3;
   $("#botao-salvar").hidden = n !== 3;
-  if (n === 3) atualizarResumoQuem();
+  if (n === 3) {
+    atualizarResumoQuem();
+    // produto de limpar bordas só aparece se a limpeza das bordas foi marcada
+    const bordas = !!$('input[name="tarefa"][value="bordas"]:checked', form());
+    $('[data-produto="Limpa bordas"]', form()).hidden = !bordas;
+  }
   window.scrollTo({ top: 0 });
 }
 

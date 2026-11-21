@@ -1,6 +1,6 @@
 // Service worker: rede primeiro, cache como reserva (funciona sem internet na beira da piscina).
 // A API nunca é cacheada aqui; o app guarda os registros no próprio celular.
-const CACHE = "piscina-v6";
+const CACHE = "piscina-v7";
 const ARQUIVOS = ["/", "/index.html", "/styles.css", "/app.js", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
