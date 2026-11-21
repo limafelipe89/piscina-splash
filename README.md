@@ -2,8 +2,8 @@
 
 Site para o celular com o guia de tratamento da piscina (Splash Italiana, 44.800 L, fibra, aquecimento solar) e um checklist que salva data, hora, quem fez, medições (cloro livre, pH, alcalinidade, temperatura), tarefas marcadas, produtos aplicados, gasto e observações.
 
-- **Endereço:** https://manutencaopiscina.pages.dev
-- **Hospedagem:** Cloudflare Pages (deploy automático a cada push na `main`)
+- **Endereço:** o domínio `workers.dev` do Worker `manutencaopiscina` (botão *Visit* no painel)
+- **Hospedagem:** Cloudflare Worker com arquivos estáticos (deploy automático a cada push na `main`, configurado em `wrangler.jsonc`)
 - **Banco:** Cloudflare D1 (binding `DB`), tabela criada automaticamente
 - **Acesso:** login com Google, só para os e-mails da lista `ALLOWED_EMAILS` (cada registro guarda o e-mail de quem lançou e de quem editou)
 - **Sem internet:** registros novos ficam no celular e são enviados quando a conexão voltar
@@ -27,16 +27,16 @@ functions/api/          API (Cloudflare Pages Functions)
   registros/index.js    GET lista · POST cria
   registros/[id].js     GET · PUT · DELETE
 schema.sql              referência da tabela
+src/index.js            entrada do Worker: /api/* usa as rotas de functions/api, o resto vem de public/
+wrangler.jsonc          nome do Worker, pasta public/ e banco D1 `piscina` (binding DB)
 ```
 
 ## Configuração no Cloudflare (uma vez)
 
-1. **Workers & Pages → Create → Pages → Connect to Git** → escolha `limafelipe89/piscina-splash`.
-2. Build settings: **Framework preset** `None`, **Build command** vazio, **Build output directory** `public`.
-3. **Storage & Databases → D1 → Create database** com o nome `piscina`.
-4. No projeto Pages: **Settings → Bindings → Add → D1 database**, nome da variável **`DB`**, banco `piscina`.
-5. Configure o login com Google (abaixo).
-6. **Deployments → … → Retry deployment** para aplicar binding e variáveis.
+O Worker `manutencaopiscina` está ligado a este repositório (Settings → Builds). O `wrangler.jsonc` já define a pasta `public/` e o banco D1 `piscina`, então não é preciso criar bindings no painel.
+
+- **Settings → Builds:** *Deploy command* `npx wrangler deploy`, *Build command* vazio.
+- Variáveis e segredos: **Settings → Variables and secrets** (ver abaixo). O `keep_vars` no `wrangler.jsonc` preserva o que for criado no painel.
 
 ## Login com Google
 
@@ -45,10 +45,10 @@ schema.sql              referência da tabela
 1. Crie um projeto (ex.: `Piscina`).
 2. **APIs e serviços → Tela de consentimento OAuth** (ou *Google Auth Platform*): tipo **Externo**, nome do app, e-mail de suporte. Em **Público-alvo**, clique em **Publicar app** (os escopos usados — e-mail, perfil — não exigem verificação). Se preferir deixar em *Teste*, cadastre cada e-mail em *Usuários de teste*.
 3. **Credenciais / Clientes → Criar cliente OAuth → Aplicativo da Web**.
-   - **URIs de redirecionamento autorizados:** `https://manutencaopiscina.pages.dev/api/auth/callback`
+   - **URIs de redirecionamento autorizados:** `https://<endereço do Worker>/api/auth/callback` (ex.: `https://manutencaopiscina.SEU-SUBDOMINIO.workers.dev/api/auth/callback`)
 4. Copie o **ID do cliente** e a **Chave secreta do cliente**.
 
-### No Cloudflare Pages → Settings → Variables and Secrets
+### No Cloudflare → Worker `manutencaopiscina` → Settings → Variables and secrets
 
 | Nome | Tipo | Valor |
 |---|---|---|
@@ -56,14 +56,14 @@ schema.sql              referência da tabela
 | `GOOGLE_CLIENT_SECRET` | Secret | Chave secreta do cliente |
 | `ALLOWED_EMAILS` | Text | e-mails autorizados separados por vírgula, ex.: `voce@gmail.com, outra@gmail.com` |
 
-Depois faça **Retry deployment**. Para incluir ou tirar alguém, edite `ALLOWED_EMAILS` e refaça o deploy; quem sair da lista perde o acesso na hora.
+As variáveis valem a partir do próximo deploy (salvar no painel já gera um). Para incluir ou tirar alguém, edite `ALLOWED_EMAILS` e salve; quem sair da lista perde o acesso na hora.
 
 > Sem `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, o site usa o código de acesso `ACCESS_CODE` (se existir) ou fica aberto.
 
 ## Rodar localmente (opcional)
 
 ```
-npx wrangler pages dev public --d1 DB --binding ACCESS_CODE=1234
+npx wrangler dev   # variáveis locais em .dev.vars
 ```
 
 ## Ajustes comuns
