@@ -333,3 +333,35 @@ dialog form { gap: 12px; }
 .convite { display: flex; gap: 8px; margin: 12px 0 8px; }
 .convite input { flex: 1; min-width: 0; }
 .medidores > p { grid-column: 1 / -1; }
+
+/* ---------- versão simplificada ---------- */
+.botao-grande { min-height: 64px; font-size: 1.12rem; border-radius: 16px; box-shadow: 0 6px 18px rgba(42,81,159,.28); }
+.botao-grande span { font-size: 1.4rem; line-height: 1; }
+.lista-simples { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.lista-simples li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--fundo); border-radius: 10px; font-size: .95rem; }
+.lista-simples li small { color: var(--muted); white-space: nowrap; }
+.lista-simples .vazio { background: none; padding: 0; color: var(--muted); }
+.linha-add { display: flex; gap: 8px; margin: 0 0 12px; }
+.linha-add input { flex: 1; min-width: 0; }
+.linha-add .botao { min-height: 48px; }
+.linha-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.linha-botoes .botao { flex: 1; }
+.lista-itens { display: grid; gap: 10px; }
+.item-lista { border: 1.5px solid var(--linha); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.item-lista strong { font-size: 1rem; }
+.item-lista .muted { font-size: .82rem; }
+.item-lista .reg-acoes .botao:first-child { flex: 2; }
+.comprados { display: grid; gap: 6px; }
+.comprados h3 { margin: 8px 4px 0; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.comprados p { margin: 0; padding: 8px 12px; background: var(--card); border-radius: 10px; font-size: .88rem; color: var(--muted); }
+.comprados p strong { color: var(--texto); font-weight: 600; }
+dialog form { display: grid; gap: 12px; }
+dialog .campo { margin: 0; }
+#dialogo-compra { width: min(94vw, 440px); }
+.atividades { display: grid; gap: 8px; }
+.atividade { background: var(--card); border-radius: 12px; box-shadow: var(--sombra); padding: 10px 14px; display: grid; gap: 2px; font-size: .92rem; }
+.atividade-topo { display: flex; justify-content: space-between; gap: 8px; }
+.atividade-topo strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atividade-topo small { color: var(--muted); white-space: nowrap; }
+.atividade .det { color: var(--muted); font-size: .82rem; word-break: break-word; }
+.atividade.negado { border-left: 4px solid var(--fora); }

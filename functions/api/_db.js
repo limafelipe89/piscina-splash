@@ -29,13 +29,42 @@ const SCHEMA_CUSTOS = `CREATE TABLE IF NOT EXISTS custos (
 )`;
 const INDICE_CUSTOS = "CREATE INDEX IF NOT EXISTS idx_custos_data ON custos (data DESC)";
 
+const SCHEMA_LOGS = `CREATE TABLE IF NOT EXISTS logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  quando TEXT NOT NULL DEFAULT (datetime('now')),
+  email TEXT,
+  acao TEXT NOT NULL,
+  entidade TEXT,
+  entidade_id TEXT,
+  detalhes TEXT,
+  ip TEXT,
+  agente TEXT
+)`;
+const INDICE_LOGS = "CREATE INDEX IF NOT EXISTS idx_logs_quando ON logs (quando DESC)";
+
+const SCHEMA_LISTA = `CREATE TABLE IF NOT EXISTS lista_compras (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  produto TEXT NOT NULL,
+  quantidade TEXT,
+  observacao TEXT,
+  status TEXT NOT NULL DEFAULT 'faltando',   -- faltando | comprado
+  pedido_por TEXT,
+  pedido_nome TEXT,
+  pedido_em TEXT NOT NULL DEFAULT (datetime('now')),
+  comprado_por TEXT,
+  comprado_em TEXT,
+  custo_id INTEGER,
+  excluido_em TEXT,
+  excluido_por TEXT
+)`;
+
 let pronto = false;
 
 export async function garantirBanco(env) {
   if (pronto) return;
   if (!env.DB) throw new Error("Banco de dados não configurado (binding DB).");
   const db = env.DB;
-  await db.batch([db.prepare(SCHEMA), db.prepare(INDICE), db.prepare(SCHEMA_ACESSOS), db.prepare(SCHEMA_CUSTOS), db.prepare(INDICE_CUSTOS)]);
+  await db.batch([db.prepare(SCHEMA), db.prepare(INDICE), db.prepare(SCHEMA_ACESSOS), db.prepare(SCHEMA_CUSTOS), db.prepare(INDICE_CUSTOS), db.prepare(SCHEMA_LOGS), db.prepare(INDICE_LOGS), db.prepare(SCHEMA_LISTA)]);
   for (const sql of MIGRACOES) {
     try {
       await db.prepare(sql).run();

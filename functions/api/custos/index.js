@@ -1,11 +1,12 @@
-// GET  /api/custos   → lista (mais recentes primeiro)
+// GET  /api/custos   → lista (mais recentes primeiro, sem os excluídos)
 // POST /api/custos   → lança uma compra
 import { json, erro } from "../_lib.js";
 import { validarCusto } from "../_custos.js";
+import { registrarLog } from "../_log.js";
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    "SELECT * FROM custos ORDER BY data DESC, id DESC LIMIT 2000"
+    "SELECT * FROM custos WHERE excluido_em IS NULL ORDER BY data DESC, id DESC LIMIT 2000"
   ).all();
   return json({ custos: results });
 }
@@ -28,5 +29,12 @@ export async function onRequestPost({ request, env, data }) {
     const existente = await env.DB.prepare("SELECT * FROM custos WHERE client_id = ?").bind(c.client_id).first();
     return json({ custo: existente, duplicado: true });
   }
+  await registrarLog(env, request, {
+    email: data.usuario?.email,
+    acao: "custo_criar",
+    entidade: "custo",
+    entidadeId: res.id,
+    detalhes: { data: res.data, comprador: res.comprador, produto: res.produto, valor: res.valor },
+  });
   return json({ custo: res }, 201);
 }

@@ -3,43 +3,26 @@
 /* =========================================================
    Configuração
    ========================================================= */
-const TIPOS = {
-  manutencao: "Manutenção",
-  antes: "Antes do banho",
-  depois: "Depois do uso",
-};
+// Lista única do que foi feito. IDs são estáveis: não renomeie um id, só o texto.
+const TAREFAS = [
+  ["detritos", "Tirei folhas e sujeira da água"],
+  ["escovar", "Escovei paredes e fundo"],
+  ["aspirar", "Aspirei o fundo"],
+  ["filtro", "Limpei o cesto e o filtro"],
+  ["dosador", "Conferi as pastilhas no dosador"],
+  ["corrigir", "Coloquei produto para corrigir a água"],
+  ["circulacao", "Bomba e aquecimento funcionando"],
+];
 
-// IDs são estáveis: não renomeie um id existente, só o texto.
-const TAREFAS = {
-  manutencao: [
-    ["aspecto", "Observar transparência, cor, odor e película escorregadia"],
-    ["detritos", "Retirar folhas e detritos da superfície e do fundo"],
-    ["escovar", "Escovar paredes, degraus e fundo"],
-    ["filtro", "Limpar cestos, pré-filtro e filtro de pano (manual Splash)"],
-    ["medir_cloro_ph", "Medir e anotar cloro livre e pH"],
-    ["medir_alc", "Medir e anotar alcalinidade"],
-    ["corrigir_ph", "Corrigir pH/alcalinidade só se estiver fora da faixa"],
-    ["corrigir_cloro", "Corrigir cloro só conforme teste e rótulo"],
-    ["aspirar", "Aspirar sujeira acumulada (procedimento compatível com o filtro)"],
-    ["dosador", "Verificar dosador flutuante e completar pastilhas"],
-    ["circulacao", "Verificar circulação e aquecimento solar; vazamentos ou ruídos"],
-  ],
-  antes: [
-    ["cloro_faixa", "Medir cloro livre e confirmar que está na faixa"],
-    ["ph_faixa", "Medir pH e confirmar que está na faixa"],
-    ["transparente", "Água transparente e fundo bem visível"],
-    ["sem_limo", "Paredes e degraus sem limo ou película escorregadia"],
-    ["corrigido", "Se algo estava fora: corrigido e aguardado o tempo do rótulo"],
-    ["remedido", "Após correção e circulação, medido novamente"],
-    ["uso_intenso", "Uso intenso, chuva forte ou sujeira incomum: análises repetidas"],
-  ],
-  depois: [
-    ["residuos", "Retirar folhas e resíduos da água"],
-    ["filtrar", "Deixar a filtração funcionar conforme limites da Splash"],
-    ["remedir", "Uso intenso: medir novamente cloro e pH"],
-    ["registrar", "Registrar alteração de cor, turbidez ou consumo anormal de cloro"],
-  ],
+// Tarefas da versão anterior (só para mostrar registros antigos no histórico).
+const TAREFAS_ANTIGAS = {
+  aspecto: "Observei cor, transparência e limo", medir_cloro_ph: "Medi cloro e pH", medir_alc: "Medi alcalinidade",
+  corrigir_ph: "Corrigi pH/alcalinidade", corrigir_cloro: "Corrigi o cloro", cloro_faixa: "Cloro conferido antes do banho",
+  ph_faixa: "pH conferido antes do banho", transparente: "Água transparente", sem_limo: "Sem limo nas paredes",
+  corrigido: "Corrigido e aguardado o tempo do rótulo", remedido: "Medido novamente", uso_intenso: "Análises repetidas após uso intenso",
+  residuos: "Retirei resíduos", filtrar: "Deixei filtrar", remedir: "Medi de novo após uso", registrar: "Anotei alterações na água",
 };
+const NOME_TAREFA = { ...TAREFAS_ANTIGAS, ...Object.fromEntries(TAREFAS) };
 
 const LS = {
   codigo: "piscina.codigo",
@@ -48,6 +31,7 @@ const LS = {
   responsavel: "piscina.responsavel",
   acesso: "piscina.acesso",
   custos: "piscina.custos",
+  lista: "piscina.lista",
 };
 
 /* =========================================================
@@ -57,25 +41,25 @@ function avaliar(param, v) {
   if (v === null || v === undefined || Number.isNaN(v)) return null;
   switch (param) {
     case "cloro":
-      if (v < 2) return { nivel: "fora", texto: "Abaixo de 2 ppm — não liberar banho" };
-      if (v > 5) return { nivel: "atencao", texto: "Acima do usual — confira o rótulo" };
-      return { nivel: "ok", texto: "Na faixa" };
+      if (v < 2) return { nivel: "fora", texto: "Baixo — não liberar banho" };
+      if (v > 5) return { nivel: "atencao", texto: "Alto — confira o rótulo" };
+      return { nivel: "ok", texto: "Bom" };
     case "ph":
-      if (v >= 7.2 && v <= 7.6) return { nivel: "ok", texto: "Na faixa (7,2–7,6)" };
-      if (v >= 7.0 && v <= 7.8) return { nivel: "atencao", texto: v < 7.2 ? "Um pouco baixo — ajustar" : "Um pouco alto — ajustar" };
+      if (v >= 7.2 && v <= 7.6) return { nivel: "ok", texto: "Bom (7,2 a 7,6)" };
+      if (v >= 7.0 && v <= 7.8) return { nivel: "atencao", texto: v < 7.2 ? "Um pouco baixo" : "Um pouco alto" };
       return { nivel: "fora", texto: v < 7.0 ? "Muito baixo — corrigir" : "Muito alto — corrigir" };
     case "alcalinidade":
-      if (v >= 80 && v <= 120) return { nivel: "ok", texto: "Na faixa (80–120)" };
-      if (v >= 60 && v <= 150) return { nivel: "atencao", texto: v < 80 ? "Baixa — avaliar ajuste" : "Alta — avaliar ajuste" };
+      if (v >= 80 && v <= 120) return { nivel: "ok", texto: "Boa (80 a 120)" };
+      if (v >= 60 && v <= 150) return { nivel: "atencao", texto: v < 80 ? "Baixa" : "Alta" };
       return { nivel: "fora", texto: v < 60 ? "Muito baixa" : "Muito alta" };
     case "temperatura":
-      return { nivel: "", texto: v > 32 ? "Água quente consome mais cloro" : "" };
+      return { nivel: "", texto: "" };
   }
   return null;
 }
 
 const ROTULOS = {
-  cloro: ["Cloro livre", "ppm"],
+  cloro: ["Cloro", "ppm"],
   ph: ["pH", ""],
   alcalinidade: ["Alcalinidade", "ppm"],
   temperatura: ["Temperatura", "°C"],
@@ -94,9 +78,15 @@ function num(txt) {
   const n = Number(s);
   return Number.isFinite(n) ? n : NaN;
 }
-function fmt(n, casas) {
+function lerValorBR(txt) {
+  const s = String(txt || "").replace(/[R$\s]/g, "");
+  if (!s) return null;
+  const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s);
+  return Number.isFinite(n) ? n : NaN;
+}
+function fmt(n) {
   if (n === null || n === undefined || Number.isNaN(n)) return "–";
-  return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: casas ?? 0, maximumFractionDigits: casas ?? 2 });
+  return Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 function brl(n) {
   return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -111,14 +101,22 @@ function horaAgora() {
 function dataBR(iso) {
   if (!iso) return "";
   const [a, m, d] = iso.split("-");
-  const dt = new Date(+a, +m - 1, +d);
-  return dt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(+a, +m - 1, +d).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+}
+function dataCurta(iso) {
+  if (!iso) return "";
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+function dataHoraBR(sqlUTC) {
+  if (!sqlUTC) return "";
+  const d = new Date(sqlUTC.replace(" ", "T") + "Z");
+  return Number.isNaN(d.getTime()) ? sqlUTC : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 function diasDesde(iso) {
   if (!iso) return null;
   const [a, m, d] = iso.split("-").map(Number);
-  const ms = new Date(new Date().toDateString()) - new Date(a, m - 1, d);
-  return Math.round(ms / 86400000);
+  return Math.round((new Date(new Date().toDateString()) - new Date(a, m - 1, d)) / 86400000);
 }
 function uuid() {
   if (crypto.randomUUID) return crypto.randomUUID();
@@ -135,6 +133,20 @@ function lerLS(k, padrao) {
 }
 function gravarLS(k, v) {
   try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ }
+}
+function baixarCSV(nome, linhas) {
+  const blob = new Blob(["﻿" + linhas.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function celCSV(v) {
+  if (v === null || v === undefined) return "";
+  const s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
+  return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 let toastTimer;
@@ -197,63 +209,77 @@ async function api(caminho, opcoes = {}, tentativa = 0) {
   return dados;
 }
 
+function erroAmigavel(e) {
+  return e instanceof ErroRede ? "Sem internet. Tente de novo quando conectar." : e.message;
+}
+
 /* =========================================================
-   Acesso (login Google / código / aberto)
+   Acesso (login Google)
    ========================================================= */
 let acesso = lerLS(LS.acesso, { modo: null, usuario: null });
 
 const ERROS_LOGIN = {
-  nao_autorizado: "Este e-mail não está autorizado. Peça para incluírem você na lista.",
-  aguardando: "Pedido de acesso enviado. Assim que o administrador liberar, toque em Entrar com Google de novo.",
-  recusado: "Seu acesso não foi liberado pelo administrador.",
+  nao_autorizado: "Este e-mail não está autorizado.",
+  aguardando: "Pedido de acesso enviado. Assim que for liberado, toque em Entrar com Google de novo.",
+  recusado: "Seu acesso não foi liberado.",
   login_cancelado: "Login cancelado.",
   login_expirado: "O login demorou demais. Tente de novo.",
-  login_falhou: "Não foi possível concluir o login. Tente de novo.",
-  google_nao_configurado: "O login com Google ainda não foi configurado no servidor.",
+  login_falhou: "Não foi possível entrar. Tente de novo.",
+  google_nao_configurado: "O login com Google ainda não foi configurado.",
 };
 
+const ehAdmin = () => !!(acesso.usuario && acesso.usuario.admin);
+const meuEmail = () => (acesso.usuario && acesso.usuario.email ? acesso.usuario.email.toLowerCase() : null);
+
+// Mesma regra do servidor: só quem criou exclui (antigos sem criador: administrador).
+function possoExcluir(criadoPor) {
+  if (acesso.modo !== "google") return true;
+  if (!meuEmail()) return false;
+  if (criadoPor) return criadoPor.toLowerCase() === meuEmail();
+  return ehAdmin();
+}
+
 function mostrarLogin(msg) {
-  const tela = $("#tela-login");
   const erro = $("#login-erro");
   erro.hidden = !msg;
   erro.textContent = msg || "";
-  tela.hidden = false;
+  $("#tela-login").hidden = false;
 }
 
 function renderUsuario() {
   const u = acesso.usuario;
   const botao = $("#botao-usuario");
-  if (!u) { botao.hidden = true; $("#menu-usuario").hidden = true; return; }
+  if (!u) { botao.hidden = true; $("#menu-usuario").hidden = true; renderPedidosAcesso(); return; }
   botao.hidden = false;
   $("#usuario-nome").textContent = u.nome || "";
   $("#usuario-email").textContent = u.email || "";
   const foto = $("#usuario-foto");
+  const inicial = (u.nome || u.email || "?")[0].toUpperCase();
   if (u.foto) {
     foto.src = u.foto;
     foto.hidden = false;
     $("#usuario-inicial").textContent = "";
-    foto.onerror = () => { foto.hidden = true; $("#usuario-inicial").textContent = (u.nome || u.email || "?")[0].toUpperCase(); };
+    foto.onerror = () => { foto.hidden = true; $("#usuario-inicial").textContent = inicial; };
   } else {
     foto.hidden = true;
-    $("#usuario-inicial").textContent = (u.nome || u.email || "?")[0].toUpperCase();
+    $("#usuario-inicial").textContent = inicial;
   }
+  $("#botao-atividades").hidden = !ehAdmin();
   renderPedidosAcesso();
 }
 
 function renderPedidosAcesso() {
-  const admin = !!(acesso.usuario && acesso.usuario.admin);
-  const n = admin ? Number(acesso.pendentes || 0) : 0;
-  $("#botao-acessos").hidden = !admin;
+  const n = ehAdmin() ? Number(acesso.pendentes || 0) : 0;
+  $("#botao-acessos").hidden = !ehAdmin();
   $("#botao-acessos").textContent = n ? `Gerenciar acessos (${n})` : "Gerenciar acessos";
   const badge = $("#usuario-badge");
   badge.hidden = !n;
   badge.textContent = n;
   const aviso = $("#aviso-acessos");
   aviso.hidden = !n;
-  aviso.textContent = n === 1 ? "1 pessoa pediu acesso ao site. Toque para liberar ou recusar." : `${n} pessoas pediram acesso ao site. Toque para liberar ou recusar.`;
+  aviso.textContent = n === 1 ? "1 pessoa pediu acesso. Toque para liberar ou recusar." : `${n} pessoas pediram acesso. Toque para liberar ou recusar.`;
 }
 
-// Retorna true se o app pode carregar os dados.
 async function verificarAcesso() {
   const params = new URLSearchParams(location.search);
   const erroURL = params.get("erro");
@@ -265,24 +291,17 @@ async function verificarAcesso() {
     acesso = await r.json();
     gravarLS(LS.acesso, acesso);
   } catch {
-    // sem internet: usa o último estado conhecido para continuar funcionando
+    // sem internet: segue com o último estado conhecido
   }
   renderUsuario();
 
   if (acesso.modo === "google" && !acesso.usuario) {
     let msg = ERROS_LOGIN[erroURL] || "";
     const emailURL = params.get("email");
-    if (erroURL === "aguardando" && emailURL) {
-      msg = `Pedido de acesso de ${emailURL} enviado. Assim que o administrador liberar, toque em Entrar com Google de novo.`;
-    } else if (erroURL === "recusado" && emailURL) {
-      msg = `O acesso de ${emailURL} não foi liberado pelo administrador.`;
-    } else if (erroURL === "nao_autorizado" && emailURL) {
-      msg = `O e-mail ${emailURL} não está autorizado.`;
-    }
-    registros = [];
-    custos = [];
-    gravarLS(LS.cache, []);
-    gravarLS(LS.custos, []);
+    if (erroURL === "aguardando" && emailURL) msg = `Pedido de acesso de ${emailURL} enviado. Assim que for liberado, toque em Entrar com Google de novo.`;
+    else if (erroURL === "recusado" && emailURL) msg = `O acesso de ${emailURL} não foi liberado.`;
+    registros = []; custos = []; lista = { faltando: [], comprados: [] };
+    gravarLS(LS.cache, []); gravarLS(LS.custos, []); gravarLS(LS.lista, lista);
     mostrarLogin(msg);
     return false;
   }
@@ -291,13 +310,14 @@ async function verificarAcesso() {
 }
 
 /* =========================================================
-   Estado
+   Estado e carregamento
    ========================================================= */
 let registros = lerLS(LS.cache, []);
 let pendentes = lerLS(LS.pendentes, []);
 let custos = lerLS(LS.custos, []);
+let lista = lerLS(LS.lista, { faltando: [], comprados: [] });
 
-function todos() {
+function todosRegistros() {
   const pend = pendentes.map((p) => ({ ...p, _pendente: true }));
   return [...pend, ...registros].sort((a, b) =>
     (b.data + (b.hora || "")).localeCompare(a.data + (a.hora || "")) || (b.id || 0) - (a.id || 0)
@@ -306,11 +326,13 @@ function todos() {
 
 async function carregar() {
   try {
-    const [dados, dc] = await Promise.all([api("/api/registros?limite=500"), api("/api/custos")]);
-    registros = dados.registros || [];
-    custos = dc.custos || [];
+    const [r, c, l] = await Promise.all([api("/api/registros?limite=500"), api("/api/custos"), api("/api/lista")]);
+    registros = r.registros || [];
+    custos = c.custos || [];
+    lista = { faltando: l.faltando || [], comprados: l.comprados || [] };
     gravarLS(LS.cache, registros);
     gravarLS(LS.custos, custos);
+    gravarLS(LS.lista, lista);
   } catch (e) {
     if (!(e instanceof ErroRede)) toast(e.message);
   }
@@ -325,7 +347,6 @@ async function sincronizar() {
       await api("/api/registros", { method: "POST", body: JSON.stringify(p) });
     } catch (e) {
       restantes.push(p);
-      if (!(e instanceof ErroRede)) console.warn("Falha ao sincronizar", e);
     }
   }
   const enviados = pendentes.length - restantes.length;
@@ -337,17 +358,22 @@ async function sincronizar() {
 /* =========================================================
    Navegação
    ========================================================= */
-const TITULOS = { inicio: "Início", guia: "Guia", checklist: "Checklist", custos: "Custos", historico: "Histórico", acessos: "Acessos" };
+const TITULOS = {
+  inicio: "Início", registrar: "Registrar", compras: "Compras", historico: "Histórico", guia: "Guia",
+  acessos: "Acessos", atividades: "Atividades",
+};
+const SO_ADMIN = ["acessos", "atividades"];
 
 function irPara(aba, { rolar = true } = {}) {
   if (!TITULOS[aba]) aba = "inicio";
-  if (aba === "acessos" && !(acesso.usuario && acesso.usuario.admin)) aba = "inicio";
-  if (aba === "acessos") carregarAcessos();
+  if (SO_ADMIN.includes(aba) && !ehAdmin()) aba = "inicio";
   $$(".aba").forEach((s) => (s.hidden = s.id !== `aba-${aba}`));
   $$(".abas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   $("#titulo-aba").textContent = TITULOS[aba];
   if (location.hash !== `#${aba}`) history.replaceState(null, "", `#${aba}`);
   if (rolar) window.scrollTo({ top: 0 });
+  if (aba === "acessos") carregarAcessos();
+  if (aba === "atividades") carregarAtividades(true);
 }
 
 /* =========================================================
@@ -356,26 +382,27 @@ function irPara(aba, { rolar = true } = {}) {
 function medidorHTML(param, valor) {
   const [rot, un] = ROTULOS[param];
   const av = avaliar(param, valor);
-  const cls = av ? av.nivel : "";
-  return `<div class="medidor ${cls}">
+  const temValor = valor !== null && valor !== undefined;
+  return `<div class="medidor ${av ? av.nivel : ""}">
     <small>${rot}</small>
-    <strong>${fmt(valor)}</strong>${un && valor !== null && valor !== undefined ? ` <small style="display:inline">${un}</small>` : ""}
+    <strong>${fmt(valor)}</strong>${un && temValor ? ` <small style="display:inline">${un}</small>` : ""}
     ${av && av.texto ? `<div class="estado">${esc(av.texto)}</div>` : ""}
   </div>`;
 }
 
 function renderInicio() {
-  const lista = todos();
-  const ultima = lista.find((r) => r.cloro !== null && r.cloro !== undefined || r.ph !== null && r.ph !== undefined);
-  const box = $("#ultima-medicao");
+  const lst = todosRegistros();
+  const tem = (v) => v !== null && v !== undefined;
+  const ultima = lst.find((r) => tem(r.cloro) || tem(r.ph));
   const ver = $("#veredito");
 
   if (!ultima) {
-    box.innerHTML = '<p class="muted">Nenhuma medição ainda. Faça a primeira manutenção.</p>';
+    $("#ultima-medicao").innerHTML = '<p class="muted">Nenhuma medição ainda. Toque em Fazer registro.</p>';
     $("#ultima-data").textContent = "";
     ver.hidden = true;
   } else {
-    box.innerHTML = ["cloro", "ph", "alcalinidade", "temperatura"].map((p) => medidorHTML(p, ultima[p])).join("");
+    const params = ["cloro", "ph"].concat(tem(ultima.alcalinidade) ? ["alcalinidade"] : []);
+    $("#ultima-medicao").innerHTML = params.map((p) => medidorHTML(p, ultima[p])).join("");
     $("#ultima-data").textContent = `${dataBR(ultima.data)}${ultima.hora ? " · " + ultima.hora : ""} · ${ultima.responsavel || ""}`;
 
     const avs = ["cloro", "ph"].map((p) => [p, avaliar(p, ultima[p])]);
@@ -384,48 +411,44 @@ function renderInicio() {
     const atenc = avs.filter(([, a]) => a && a.nivel === "atencao").map(([p]) => ROTULOS[p][0]);
     const dias = diasDesde(ultima.data);
     const velha = dias !== null && dias >= 1
-      ? `<small>Medição de ${dias === 1 ? "ontem" : dias + " dias atrás"}: meça de novo antes de liberar o banho.</small>`
-      : "";
-
+      ? `<small>Medido ${dias === 1 ? "ontem" : "há " + dias + " dias"}: meça de novo antes do banho.</small>` : "";
     let cls, txt;
     if (fora.length) { cls = "fora"; txt = `Não liberar banho: corrigir ${fora.join(" e ")}.`; }
     else if (faltando.length) { cls = "atencao"; txt = `Falta medir ${faltando.join(" e ")}.`; }
     else if (atenc.length) { cls = "atencao"; txt = `Atenção: ajustar ${atenc.join(" e ")}.`; }
-    else { cls = "ok"; txt = "Cloro e pH dentro da faixa."; }
+    else { cls = "ok"; txt = "Água boa: cloro e pH na faixa."; }
     ver.className = `veredito ${cls}`;
     ver.innerHTML = esc(txt) + velha;
     ver.hidden = false;
   }
 
+  // faltando comprar
+  const f = lista.faltando || [];
+  $("#inicio-faltando").innerHTML = f.length
+    ? f.slice(0, 5).map((i) => `<li><span>${esc(i.produto)}${i.quantidade ? ` <small>· ${esc(i.quantidade)}</small>` : ""}</span><small>${esc(dataHoraBR(i.pedido_em).slice(0, 5))}</small></li>`).join("") +
+      (f.length > 5 ? `<li class="vazio">e mais ${f.length - 5}…</li>` : "")
+    : '<li class="vazio">Nada faltando no momento.</li>';
+
+  // resumo do mês
   const mes = hojeISO().slice(0, 7);
-  const doMes = lista.filter((r) => (r.data || "").startsWith(mes));
-  $("#res-registros").textContent = doMes.length;
+  $("#res-registros").textContent = lst.filter((r) => (r.data || "").startsWith(mes)).length;
   const gastoMes = custos.filter((c) => (c.data || "").startsWith(mes)).reduce((s, c) => s + (Number(c.valor) || 0), 0);
   $("#res-gasto").textContent = brl(gastoMes).replace(",00", "");
-  const ultManut = lista.find((r) => r.tipo === "manutencao");
-  const d = ultManut ? diasDesde(ultManut.data) : null;
+  const d = lst.length ? diasDesde(lst[0].data) : null;
   $("#res-dias").textContent = d === null ? "–" : d;
 
   const av = $("#pendentes-aviso");
-  if (pendentes.length) {
-    av.hidden = false;
-    av.textContent = `${pendentes.length} registro(s) salvo(s) só no celular, aguardando internet para enviar.`;
-  } else av.hidden = true;
+  av.hidden = !pendentes.length;
+  av.textContent = pendentes.length ? `${pendentes.length} registro(s) guardado(s) no celular, esperando internet para enviar.` : "";
 }
 
 /* =========================================================
-   Checklist (formulário)
+   Registrar
    ========================================================= */
 const form = () => $("#form");
 
-function tipoAtual() {
-  return $('input[name="tipo"]:checked', form()).value;
-}
-
 function renderTarefas(marcadas = []) {
-  const tipo = tipoAtual();
-  const ul = $("#lista-tarefas");
-  ul.innerHTML = TAREFAS[tipo].map(([id, txt]) => `
+  $("#lista-tarefas").innerHTML = TAREFAS.map(([id, txt]) => `
     <li><label>
       <input type="checkbox" name="tarefa" value="${id}" ${marcadas.includes(id) ? "checked" : ""}>
       <span>${esc(txt)}</span>
@@ -434,10 +457,8 @@ function renderTarefas(marcadas = []) {
 }
 
 function contarTarefas() {
-  const caixas = $$('input[name="tarefa"]', form());
-  const feitas = caixas.filter((c) => c.checked).length;
-  $("#contador-tarefas").textContent = `${feitas}/${caixas.length}`;
-  $("#marcar-todas").textContent = feitas === caixas.length && caixas.length ? "Desmarcar todas" : "Marcar todas";
+  const n = $$('input[name="tarefa"]:checked', form()).length;
+  $("#contador-tarefas").textContent = n ? `${n} marcado(s)` : "";
 }
 
 function atualizarDica(input) {
@@ -453,14 +474,17 @@ function atualizarDica(input) {
   dica.textContent = av ? av.texto : "";
 }
 
-function novoRegistro(tipo = "manutencao") {
+function nomePadrao() {
+  return lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
+}
+
+function novoRegistro() {
   const f = form();
   f.reset();
   f.id.value = "";
-  $(`input[name="tipo"][value="${tipo}"]`, f).checked = true;
   f.data.value = hojeISO();
   f.hora.value = horaAgora();
-  f.responsavel.value = lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
+  f.responsavel.value = nomePadrao();
   $("#editando-aviso").hidden = true;
   $("#botao-salvar").textContent = "Salvar registro";
   renderTarefas();
@@ -471,11 +495,10 @@ function editarRegistro(r) {
   const f = form();
   f.reset();
   f.id.value = r.id;
-  $(`input[name="tipo"][value="${r.tipo}"]`, f).checked = true;
   f.data.value = r.data;
   f.hora.value = r.hora || "";
   f.responsavel.value = r.responsavel || "";
-  for (const k of ["cloro", "ph", "alcalinidade", "temperatura", "gasto"]) {
+  for (const k of ["cloro", "ph", "alcalinidade", "temperatura"]) {
     f[k].value = r[k] === null || r[k] === undefined ? "" : String(r[k]).replace(".", ",");
   }
   f.produtos.value = r.produtos || "";
@@ -484,13 +507,14 @@ function editarRegistro(r) {
   $$(".medida input", f).forEach(atualizarDica);
   $("#editando-aviso").hidden = false;
   $("#botao-salvar").textContent = "Salvar alterações";
-  irPara("checklist");
+  irPara("registrar");
 }
 
-function coletar() {
+async function salvarRegistro(ev) {
+  ev.preventDefault();
   const f = form();
   const dados = {
-    tipo: tipoAtual(),
+    tipo: "registro",
     data: f.data.value,
     hora: f.hora.value || null,
     responsavel: f.responsavel.value.trim(),
@@ -498,30 +522,22 @@ function coletar() {
     produtos: f.produtos.value.trim() || null,
     observacoes: f.observacoes.value.trim() || null,
   };
-  const erros = [];
-  for (const k of ["cloro", "ph", "alcalinidade", "temperatura", "gasto"]) {
+  for (const k of ["cloro", "ph", "alcalinidade", "temperatura"]) {
     const v = num(f[k].value);
-    if (Number.isNaN(v)) erros.push(`Valor inválido em ${k === "gasto" ? "valor gasto" : ROTULOS[k][0]}`);
-    dados[k] = Number.isNaN(v) ? null : v;
+    if (Number.isNaN(v)) return toast(`Valor inválido em ${ROTULOS[k][0]}`);
+    dados[k] = v;
   }
-  if (!dados.data) erros.push("Informe a data");
-  if (!dados.responsavel) erros.push("Informe quem fez a manutenção");
-  return { dados, erros };
-}
-
-async function salvar(ev) {
-  ev.preventDefault();
-  const f = form();
-  const { dados, erros } = coletar();
-  if (erros.length) { toast(erros[0]); return; }
+  if (!dados.data) return toast("Informe a data");
+  if (!dados.responsavel) return toast("Informe quem fez");
+  const vazio = dados.cloro === null && dados.ph === null && dados.alcalinidade === null && !dados.tarefas.length && !dados.produtos && !dados.observacoes;
+  if (vazio) return toast("Preencha a medição ou marque o que foi feito");
   gravarLS(LS.responsavel, dados.responsavel);
 
   const botao = $("#botao-salvar");
   botao.disabled = true;
-  const id = f.id.value;
   try {
-    if (id) {
-      await api(`/api/registros/${id}`, { method: "PUT", body: JSON.stringify(dados) });
+    if (f.id.value) {
+      await api(`/api/registros/${f.id.value}`, { method: "PUT", body: JSON.stringify(dados) });
       toast("Registro atualizado");
     } else {
       dados.client_id = uuid();
@@ -532,15 +548,14 @@ async function salvar(ev) {
         if (!(e instanceof ErroRede)) throw e;
         pendentes.push(dados);
         gravarLS(LS.pendentes, pendentes);
-        toast("Sem internet: salvo no celular e enviado depois");
+        toast("Sem internet: guardado no celular e enviado depois");
       }
     }
-    const tipo = dados.tipo;
     await carregar();
-    novoRegistro(tipo);
-    irPara("historico");
+    novoRegistro();
+    irPara("inicio");
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet: edição não enviada" : e.message);
+    toast(erroAmigavel(e));
   } finally {
     botao.disabled = false;
   }
@@ -557,79 +572,60 @@ function chip(param, v) {
 }
 
 function renderHistorico() {
-  const filtro = $("#filtro-tipo").value;
-  const lista = todos().filter((r) => !filtro || r.tipo === filtro);
+  const lst = todosRegistros();
   const box = $("#lista-historico");
-  if (!lista.length) {
-    box.innerHTML = '<div class="card vazio"><p class="muted">Nenhum registro encontrado.</p></div>';
+  if (!lst.length) {
+    box.innerHTML = '<div class="card vazio"><p class="muted">Nenhum registro ainda.</p></div>';
     return;
   }
-  box.innerHTML = lista.map((r, i) => {
-    const defs = TAREFAS[r.tipo] || [];
-    const feitas = (r.tarefas || []);
-    const nomes = defs.filter(([id]) => feitas.includes(id)).map(([, t]) => t);
-    const naoFeitas = defs.filter(([id]) => !feitas.includes(id)).map(([, t]) => t);
-    return `<details class="reg" data-i="${i}">
+  box.innerHTML = lst.map((r) => {
+    const feitas = (r.tarefas || []).map((id) => NOME_TAREFA[id] || id);
+    return `<details class="reg">
       <summary>
         <div class="reg-topo">
           <strong>${esc(dataBR(r.data))}${r.hora ? " · " + esc(r.hora) : ""}</strong>
-          <span class="reg-tipo ${r._pendente ? "pendente" : ""}">${r._pendente ? "Pendente" : esc(TIPOS[r.tipo] || r.tipo)}</span>
+          ${r._pendente ? '<span class="reg-tipo pendente">Não enviado</span>' : ""}
         </div>
-        <div class="muted">${esc(r.responsavel)} · ${feitas.length}/${defs.length} tarefas${r.gasto ? " · " + brl(r.gasto) : ""}</div>
+        <div class="muted">${esc(r.responsavel)}${feitas.length ? ` · ${feitas.length} serviço(s)` : ""}</div>
         <div class="chips">${chip("cloro", r.cloro)}${chip("ph", r.ph)}${chip("alcalinidade", r.alcalinidade)}${chip("temperatura", r.temperatura)}</div>
       </summary>
       <div class="reg-corpo">
-        ${nomes.length ? `<div><h4>Feito</h4><ul>${nomes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
-        ${naoFeitas.length ? `<div><h4>Não marcado</h4><ul>${naoFeitas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
-        ${r.produtos ? `<div><h4>Produtos aplicados</h4><p>${esc(r.produtos)}</p></div>` : ""}
-        ${r.observacoes ? `<div><h4>Observações</h4><p>${esc(r.observacoes)}</p></div>` : ""}
+        ${feitas.length ? `<div><h4>O que foi feito</h4><ul>${feitas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
+        ${r.produtos ? `<div><h4>Produtos colocados</h4><p>${esc(r.produtos)}</p></div>` : ""}
+        ${r.observacoes ? `<div><h4>Observação</h4><p>${esc(r.observacoes)}</p></div>` : ""}
         ${r.criado_por ? `<p class="muted">Lançado por ${esc(r.criado_por)}${r.atualizado_por ? ` · editado por ${esc(r.atualizado_por)}` : ""}</p>` : ""}
-        ${r._pendente ? '<p class="muted">Aguardando internet para enviar.</p>' : `
+        ${r._pendente ? "" : `
         <div class="reg-acoes">
           <button type="button" class="botao botao-sec botao-peq" data-editar="${r.id}">Editar</button>
-          <button type="button" class="botao botao-perigo botao-peq" data-excluir="${r.id}">Excluir</button>
+          ${possoExcluir(r.criado_por) ? `<button type="button" class="botao botao-perigo botao-peq" data-excluir="${r.id}">Excluir</button>` : ""}
         </div>`}
       </div>
     </details>`;
   }).join("");
 }
 
-async function excluir(id) {
-  if (!confirm("Excluir este registro? Essa ação não pode ser desfeita.")) return;
+async function excluirRegistro(id) {
+  if (!confirm("Excluir este registro?")) return;
   try {
     await api(`/api/registros/${id}`, { method: "DELETE" });
     toast("Registro excluído");
     await carregar();
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+    toast(erroAmigavel(e));
   }
 }
 
-function exportarCSV() {
-  const lista = todos();
-  if (!lista.length) { toast("Nada para exportar"); return; }
-  const cab = ["Data", "Hora", "Tipo", "Responsável", "Cloro livre (ppm)", "pH", "Alcalinidade (ppm)", "Temperatura (°C)", "Tarefas feitas", "Produtos", "Gasto (R$)", "Observações"];
-  const cel = (v) => {
-    if (v === null || v === undefined) return "";
-    const s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
-    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const linhas = lista.map((r) => {
-    const defs = TAREFAS[r.tipo] || [];
-    const feitas = defs.filter(([id]) => (r.tarefas || []).includes(id)).map(([, t]) => t).join(" | ");
-    return [r.data, r.hora, TIPOS[r.tipo], r.responsavel, r.cloro, r.ph, r.alcalinidade, r.temperatura, feitas, r.produtos, r.gasto, r.observacoes].map(cel).join(";");
-  });
-  const blob = new Blob(["﻿" + [cab.join(";"), ...linhas].join("\r\n")], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `piscina-registros-${hojeISO()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+function exportarRegistrosCSV() {
+  const lst = todosRegistros();
+  if (!lst.length) return toast("Nada para exportar");
+  const cab = ["Data", "Hora", "Quem fez", "Cloro (ppm)", "pH", "Alcalinidade (ppm)", "O que foi feito", "Produtos colocados", "Observação"];
+  const linhas = lst.map((r) => [r.data, r.hora, r.responsavel, r.cloro, r.ph, r.alcalinidade,
+    (r.tarefas || []).map((id) => NOME_TAREFA[id] || id).join(" | "), r.produtos, r.observacoes].map(celCSV).join(";"));
+  baixarCSV(`piscina-registros-${hojeISO()}.csv`, [cab.join(";"), ...linhas]);
 }
 
 /* =========================================================
-   Custos (prestação de contas)
+   Compras: lista do que falta + gastos
    ========================================================= */
 const NOMES_MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 let mesCustos = hojeISO().slice(0, 7);
@@ -639,98 +635,118 @@ function rotuloMes(ym) {
   const [a, m] = ym.split("-");
   return `${NOMES_MES[+m - 1]} de ${a}`;
 }
-
 function custosDoPeriodo() {
   return custos.filter((c) => mesCustos === "todos" || (c.data || "").startsWith(mesCustos));
+}
+
+function renderLista() {
+  const f = lista.faltando || [];
+  $("#lista-faltando").innerHTML = f.length ? f.map((i) => `
+    <div class="item-lista">
+      <div><strong>${esc(i.produto)}</strong>${i.quantidade ? ` · ${esc(i.quantidade)}` : ""}
+        <div class="muted">Avisado por ${esc(i.pedido_nome || i.pedido_por || "–")} em ${esc(dataHoraBR(i.pedido_em))}</div></div>
+      <div class="reg-acoes">
+        <button type="button" class="botao botao-peq" data-comprei="${i.id}">Comprei</button>
+        ${possoExcluir(i.pedido_por) ? `<button type="button" class="botao botao-perigo botao-peq" data-tirar="${i.id}">Tirar</button>` : ""}
+      </div>
+    </div>`).join("") : '<p class="muted">Nada faltando. Quando algo estiver acabando, escreva acima e toque em Avisar.</p>';
+
+  const c = lista.comprados || [];
+  $("#lista-comprados").innerHTML = c.length
+    ? `<h3>Comprados recentemente</h3>` + c.slice(0, 8).map((i) =>
+      `<p><strong>${esc(i.produto)}</strong> · ${esc(i.comprador || "")} · ${i.valor ? brl(i.valor) : ""} · ${esc(dataHoraBR(i.comprado_em).slice(0, 5))}</p>`).join("")
+    : "";
 }
 
 function renderMesesCustos() {
   const sel = $("#custo-mes");
   const meses = new Set([hojeISO().slice(0, 7), ...custos.map((c) => (c.data || "").slice(0, 7)).filter(Boolean)]);
-  const lista = [...meses].sort().reverse();
-  if (!lista.includes(mesCustos) && mesCustos !== "todos") mesCustos = lista[0];
-  sel.innerHTML = lista.map((m) => `<option value="${m}">${esc(rotuloMes(m))}</option>`).join("") +
-    `<option value="todos">Todo o período</option>`;
+  const opcoes = [...meses].sort().reverse();
+  if (mesCustos !== "todos" && !opcoes.includes(mesCustos)) mesCustos = opcoes[0];
+  sel.innerHTML = opcoes.map((m) => `<option value="${m}">${esc(rotuloMes(m))}</option>`).join("") + `<option value="todos">Todo o período</option>`;
   sel.value = mesCustos;
 }
 
 function renderCustos() {
   renderMesesCustos();
-  const doPeriodo = custosDoPeriodo();
-  const total = doPeriodo.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  const per = custosDoPeriodo();
+  const total = per.reduce((s, c) => s + (Number(c.valor) || 0), 0);
   $("#custo-total").textContent = brl(total);
-  $("#custo-qtd").textContent = doPeriodo.length
-    ? `${doPeriodo.length} compra(s) · ${rotuloMes(mesCustos)}`
-    : `Nenhuma compra em ${rotuloMes(mesCustos)}`;
+  $("#custo-qtd").textContent = per.length ? `${per.length} compra(s) · ${rotuloMes(mesCustos)}` : `Nenhuma compra em ${rotuloMes(mesCustos)}`;
 
-  // total por pessoa
   const porPessoa = {};
-  for (const c of doPeriodo) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + (Number(c.valor) || 0);
-  const ordem = Object.entries(porPessoa).sort((a, b) => b[1] - a[1]);
-  $("#custo-por-pessoa").innerHTML = ordem.map(([nome, v]) => `
+  for (const c of per) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + (Number(c.valor) || 0);
+  $("#custo-por-pessoa").innerHTML = Object.entries(porPessoa).sort((a, b) => b[1] - a[1]).map(([nome, v]) => `
     <li><span>${esc(nome)}</span><strong>${brl(v)}</strong>
       <span class="barra"><span style="width:${total ? Math.max(3, (v / total) * 100) : 0}%"></span></span></li>`).join("");
-  $("#custo-exportar").hidden = !doPeriodo.length;
+  $("#custo-exportar").hidden = !per.length;
 
-  // lista agrupada por dia
-  const box = $("#lista-custos");
-  if (!doPeriodo.length) { box.innerHTML = ""; return; }
   let html = "";
-  let diaAtual = "";
-  for (const c of doPeriodo) {
-    if (c.data !== diaAtual) { diaAtual = c.data; html += `<p class="custo-dia">${esc(dataBR(c.data))}</p>`; }
-    const detalhes = [c.quantidade, c.loja].filter(Boolean).map(esc).join(" · ");
+  let dia = "";
+  for (const c of per) {
+    if (c.data !== dia) { dia = c.data; html += `<p class="custo-dia">${esc(dataBR(c.data))}</p>`; }
+    const det = [c.quantidade, c.loja].filter(Boolean).map(esc).join(" · ");
     html += `<details class="custo">
       <summary class="custo-topo"><strong>${esc(c.produto)}</strong><span class="custo-valor">${brl(c.valor)}</span></summary>
-      <div class="muted">${esc(c.comprador)}${detalhes ? " · " + detalhes : ""}</div>
+      <div class="muted">${esc(c.comprador)}${det ? " · " + det : ""}</div>
       ${c.observacoes ? `<div class="muted">${esc(c.observacoes)}</div>` : ""}
       ${c.criado_por ? `<div class="muted">Lançado por ${esc(c.criado_por)}${c.atualizado_por ? ` · editado por ${esc(c.atualizado_por)}` : ""}</div>` : ""}
       <div class="reg-acoes">
         <button type="button" class="botao botao-sec botao-peq" data-editar-custo="${c.id}">Editar</button>
-        <button type="button" class="botao botao-perigo botao-peq" data-excluir-custo="${c.id}">Excluir</button>
+        ${possoExcluir(c.criado_por) ? `<button type="button" class="botao botao-perigo botao-peq" data-excluir-custo="${c.id}">Excluir</button>` : ""}
       </div>
     </details>`;
   }
-  box.innerHTML = html;
+  $("#lista-custos").innerHTML = html;
 }
 
-function novoCusto() {
-  const f = $("#form-custo");
-  f.reset();
-  f.id.value = "";
-  f.data.value = hojeISO();
-  f.comprador.value = lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
-  $("#custo-form-titulo").textContent = "Lançar compra";
-  $("#custo-salvar").textContent = "Lançar compra";
-  $("#custo-cancelar").hidden = true;
-}
-
-function editarCusto(c) {
-  const f = $("#form-custo");
-  f.id.value = c.id;
-  f.data.value = c.data;
-  f.comprador.value = c.comprador || "";
-  f.produto.value = c.produto || "";
-  f.quantidade.value = c.quantidade || "";
-  f.valor.value = String(c.valor).replace(".", ",");
-  f.loja.value = c.loja || "";
-  f.observacoes.value = c.observacoes || "";
-  $("#custo-form-titulo").textContent = "Editar compra";
-  $("#custo-salvar").textContent = "Salvar alterações";
-  $("#custo-cancelar").hidden = false;
-  f.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function lerValorBR(txt) {
-  const s = String(txt || "").replace(/[R$\s]/g, "");
-  if (!s) return null;
-  const n = Number(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-async function salvarCusto(ev) {
+async function avisarFalta(ev) {
   ev.preventDefault();
-  const f = $("#form-custo");
+  const input = $("#lista-produto");
+  const produto = input.value.trim();
+  if (!produto) return toast("Escreva o produto que está acabando");
+  try {
+    const r = await api("/api/lista", { method: "POST", body: JSON.stringify({ produto, nome: nomePadrao() }) });
+    toast(r.jaNaLista ? "Esse produto já está na lista" : "Produto adicionado à lista");
+    input.value = "";
+    await carregar();
+  } catch (e) {
+    toast(erroAmigavel(e));
+  }
+}
+
+async function tirarDaLista(id) {
+  if (!confirm("Tirar este produto da lista?")) return;
+  try {
+    await api(`/api/lista/${id}`, { method: "DELETE" });
+    toast("Produto retirado da lista");
+    await carregar();
+  } catch (e) {
+    toast(erroAmigavel(e));
+  }
+}
+
+// Janela única para: "Comprei" (item da lista), compra avulsa e edição de compra
+function abrirCompra({ item = null, custo = null } = {}) {
+  const f = $("#form-compra");
+  f.reset();
+  f.item_id.value = item ? item.id : "";
+  f.custo_id.value = custo ? custo.id : "";
+  f.produto.value = item ? item.produto : custo ? custo.produto : "";
+  f.produto.readOnly = !!item;
+  f.quantidade.value = item ? item.quantidade || "" : custo ? custo.quantidade || "" : "";
+  f.valor.value = custo ? String(custo.valor).replace(".", ",") : "";
+  f.comprador.value = custo ? custo.comprador : nomePadrao();
+  f.data.value = custo ? custo.data : hojeISO();
+  f.loja.value = custo ? custo.loja || "" : "";
+  $("#compra-titulo").textContent = item ? "Comprei" : custo ? "Editar compra" : "Lançar compra";
+  $("#dialogo-compra").showModal();
+  setTimeout(() => (item ? f.valor : f.produto).focus(), 60);
+}
+
+async function salvarCompra(ev) {
+  ev.preventDefault();
+  const f = $("#form-compra");
   const dados = {
     data: f.data.value,
     comprador: f.comprador.value.trim(),
@@ -738,99 +754,80 @@ async function salvarCusto(ev) {
     quantidade: f.quantidade.value.trim() || null,
     valor: lerValorBR(f.valor.value),
     loja: f.loja.value.trim() || null,
-    observacoes: f.observacoes.value.trim() || null,
   };
-  if (!dados.data) return toast("Informe a data");
-  if (!dados.comprador) return toast("Informe quem comprou");
   if (!dados.produto) return toast("Informe o produto");
   if (!dados.valor || Number.isNaN(dados.valor) || dados.valor <= 0) return toast("Informe o valor");
+  if (!dados.comprador) return toast("Informe quem comprou");
+  if (!dados.data) return toast("Informe a data");
 
-  const botao = $("#custo-salvar");
+  const botao = $("#compra-salvar");
   botao.disabled = true;
   try {
-    if (f.id.value) {
-      await api(`/api/custos/${f.id.value}`, { method: "PUT", body: JSON.stringify(dados) });
+    if (f.item_id.value) {
+      await api(`/api/lista/${f.item_id.value}`, { method: "PUT", body: JSON.stringify({ acao: "comprar", ...dados }) });
+      toast("Compra registrada e retirada da lista");
+    } else if (f.custo_id.value) {
+      const antigo = custos.find((c) => String(c.id) === f.custo_id.value);
+      await api(`/api/custos/${f.custo_id.value}`, { method: "PUT", body: JSON.stringify({ ...dados, observacoes: antigo?.observacoes || null }) });
       toast("Compra atualizada");
     } else {
-      dados.client_id = uuid();
-      await api("/api/custos", { method: "POST", body: JSON.stringify(dados) });
+      await api("/api/custos", { method: "POST", body: JSON.stringify({ ...dados, client_id: uuid() }) });
       toast("Compra lançada");
     }
     gravarLS(LS.responsavel, dados.comprador);
     mesCustos = dados.data.slice(0, 7);
-    novoCusto();
+    $("#dialogo-compra").close();
     await carregar();
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet: a compra não foi lançada" : e.message);
+    toast(erroAmigavel(e));
   } finally {
     botao.disabled = false;
   }
 }
 
 async function excluirCusto(id) {
-  if (!confirm("Excluir este lançamento? Essa ação não pode ser desfeita.")) return;
+  if (!confirm("Excluir esta compra?")) return;
   try {
     await api(`/api/custos/${id}`, { method: "DELETE" });
-    toast("Lançamento excluído");
+    toast("Compra excluída");
     await carregar();
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+    toast(erroAmigavel(e));
   }
 }
 
 function exportarCustosCSV() {
-  const lista = custosDoPeriodo();
-  if (!lista.length) return toast("Nada para exportar");
-  const cel = (v) => {
-    if (v === null || v === undefined) return "";
-    const s = typeof v === "number" ? v.toFixed(2).replace(".", ",") : String(v);
-    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
+  const per = custosDoPeriodo();
+  if (!per.length) return toast("Nada para exportar");
+  const valor = (v) => (typeof v === "number" ? v.toFixed(2).replace(".", ",") : v);
   const cab = ["Data", "Quem comprou", "Produto", "Quantidade", "Valor (R$)", "Loja", "Observação"];
-  const linhas = [...lista].reverse().map((c) =>
-    [c.data, c.comprador, c.produto, c.quantidade, Number(c.valor), c.loja, c.observacoes].map(cel).join(";"));
-  const total = lista.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  linhas.push(["", "", "TOTAL", "", total, "", ""].map(cel).join(";"));
+  const linhas = [...per].reverse().map((c) =>
+    [c.data, c.comprador, c.produto, c.quantidade, valor(Number(c.valor)), c.loja, c.observacoes].map(celCSV).join(";"));
+  const total = per.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  linhas.push(["", "", "TOTAL", "", valor(total), "", ""].map(celCSV).join(";"), "");
   const porPessoa = {};
-  for (const c of lista) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + Number(c.valor || 0);
-  linhas.push("");
-  for (const [nome, v] of Object.entries(porPessoa)) linhas.push(["", nome, "Total da pessoa", "", v, "", ""].map(cel).join(";"));
-  const blob = new Blob(["﻿" + [cab.join(";"), ...linhas].join("\r\n")], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `piscina-custos-${mesCustos}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  for (const c of per) porPessoa[c.comprador] = (porPessoa[c.comprador] || 0) + Number(c.valor || 0);
+  for (const [nome, v] of Object.entries(porPessoa)) linhas.push(["", nome, "Total da pessoa", "", valor(v), "", ""].map(celCSV).join(";"));
+  baixarCSV(`piscina-gastos-${mesCustos}.csv`, [cab.join(";"), ...linhas]);
 }
 
 /* =========================================================
-   Acessos (somente administrador)
+   Acessos (administrador)
    ========================================================= */
 let acessos = [];
 
-function avatarHTML(p) {
-  const ini = esc((p.nome || p.email || "?")[0].toUpperCase());
-  return `<span class="pessoa-foto">${p.foto ? `<img src="${esc(p.foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}${p.foto ? "" : ini}</span>`;
-}
-
 function pessoaHTML(p, botoes) {
-  const quando = p.status === "pendente"
-    ? `pediu em ${esc(dataHoraBR(p.solicitado_em))}`
-    : p.ultimo_acesso ? `último acesso ${esc(dataHoraBR(p.ultimo_acesso))}` : (p.decidido_em ? `liberado em ${esc(dataHoraBR(p.decidido_em))}` : "");
+  const ini = esc((p.nome || p.email || "?")[0].toUpperCase());
+  const foto = p.foto ? `<img src="${esc(p.foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ini;
+  const quando = p.status === "pendente" ? `pediu em ${esc(dataHoraBR(p.solicitado_em))}`
+    : p.ultimo_acesso ? `último acesso ${esc(dataHoraBR(p.ultimo_acesso))}`
+    : p.decidido_em ? `liberado em ${esc(dataHoraBR(p.decidido_em))}` : "";
   return `<div class="pessoa">
-    ${avatarHTML(p)}
+    <span class="pessoa-foto">${foto}</span>
     <div class="pessoa-info"><strong>${esc(p.nome || p.email)}</strong><small>${esc(p.email)}${quando ? " · " + quando : ""}</small></div>
     <div class="reg-acoes">${botoes}</div>
   </div>`;
 }
-
-function dataHoraBR(sqlUTC) {
-  if (!sqlUTC) return "";
-  const d = new Date(sqlUTC.replace(" ", "T") + "Z");
-  return Number.isNaN(d.getTime()) ? sqlUTC : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
-
 function botaoAcao(email, acao, texto, classe) {
   return `<button type="button" class="botao ${classe} botao-peq" data-acesso="${esc(acao)}" data-email="${esc(email)}">${texto}</button>`;
 }
@@ -842,8 +839,9 @@ function renderAcessos(admins = [], fixos = []) {
   $("#acessos-pendentes").innerHTML = pend.length
     ? pend.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "") + botaoAcao(p.email, "recusar", "Recusar", "botao-perigo"))).join("")
     : '<p class="muted">Nenhum pedido no momento.</p>';
-  const adminsHTML = admins.map((e) => pessoaHTML({ email: e, nome: e === acesso.usuario?.email ? acesso.usuario.nome : e, foto: e === acesso.usuario?.email ? acesso.usuario.foto : null, status: "admin" }, '<span class="muted">Administrador</span>')).join("");
-  const fixosHTML = fixos.map((e) => pessoaHTML({ email: e, nome: e, status: "fixo" }, '<span class="muted">Liberado na configuração do Cloudflare</span>')).join("");
+  const eu = acesso.usuario || {};
+  const adminsHTML = admins.map((e) => pessoaHTML({ email: e, nome: e === eu.email ? eu.nome : e, foto: e === eu.email ? eu.foto : null }, '<span class="muted">Administrador</span>')).join("");
+  const fixosHTML = fixos.map((e) => pessoaHTML({ email: e, nome: e }, '<span class="muted">Liberado na configuração do Cloudflare</span>')).join("");
   $("#acessos-aprovados").innerHTML = adminsHTML + fixosHTML + aprov.map((p) => pessoaHTML(p, botaoAcao(p.email, "remover", "Remover acesso", "botao-perigo"))).join("");
   $("#card-recusados").hidden = !rec.length;
   $("#acessos-recusados").innerHTML = rec.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "botao-sec") + botaoAcao(p.email, "remover", "Apagar", "botao-perigo"))).join("");
@@ -857,7 +855,7 @@ async function carregarAcessos() {
     acessos = d.acessos || [];
     renderAcessos(d.admins || [], d.fixos || []);
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+    toast(erroAmigavel(e));
   }
 }
 
@@ -868,7 +866,69 @@ async function acaoAcesso(email, acao) {
     toast(acao === "aprovar" ? "Acesso liberado" : acao === "recusar" ? "Pedido recusado" : "Acesso removido");
     await carregarAcessos();
   } catch (e) {
-    toast(e instanceof ErroRede ? "Sem internet" : e.message);
+    toast(erroAmigavel(e));
+  }
+}
+
+/* =========================================================
+   Atividades (log) — administrador
+   ========================================================= */
+let atividadesAntes = null;
+
+const CAMPO_NOME = {
+  data: "data", hora: "hora", responsavel: "quem fez", cloro: "cloro", ph: "pH", alcalinidade: "alcalinidade",
+  temperatura: "temperatura", tarefas: "serviços", produtos: "produtos", observacoes: "observação",
+  comprador: "quem comprou", produto: "produto", quantidade: "quantidade", valor: "valor", loja: "loja", gasto: "gasto", tipo: "tipo",
+};
+
+function descreverLog(l) {
+  const d = l.detalhes || {};
+  const v = (x) => (x === null || x === undefined || x === "" ? "–" : x);
+  const alt = d.alteracoes ? Object.entries(d.alteracoes).map(([c, [a, b]]) => `${CAMPO_NOME[c] || c}: ${v(a)} → ${v(b)}`).join("; ") : "";
+  switch (l.acao) {
+    case "login": return ["entrou no site", ""];
+    case "logout": return ["saiu do site", ""];
+    case "pedido_acesso": return ["pediu acesso ao site", d.nome || ""];
+    case "login_aguardando": return ["tentou entrar (aguardando liberação)", ""];
+    case "login_recusado": return ["tentou entrar (acesso recusado)", ""];
+    case "acesso_aprovar": return [`liberou o acesso de ${l.entidade_id}`, ""];
+    case "acesso_recusar": return [`recusou o acesso de ${l.entidade_id}`, ""];
+    case "acesso_remover": return [`removeu o acesso de ${l.entidade_id}`, ""];
+    case "registro_criar": return ["fez um registro", `${dataCurta(d.data)} · cloro ${v(d.cloro)} · pH ${v(d.ph)}`];
+    case "registro_editar": return ["editou um registro", `${dataCurta(d.data)}${alt ? " · " + alt : ""}`];
+    case "registro_excluir": return ["excluiu um registro", `${dataCurta(d.data)} · ${v(d.responsavel)}`];
+    case "registro_excluir_negado": return ["tentou excluir registro de outra pessoa (bloqueado)", `criado por ${v(d.criado_por)}`];
+    case "custo_criar": return ["lançou uma compra", `${v(d.produto)} · ${brl(d.valor)} · ${v(d.comprador)}`];
+    case "custo_editar": return ["editou uma compra", `${v(d.produto)}${alt ? " · " + alt : ""}`];
+    case "custo_excluir": return ["excluiu uma compra", `${v(d.produto)} · ${brl(d.valor)}`];
+    case "custo_excluir_negado": return ["tentou excluir compra de outra pessoa (bloqueado)", `lançada por ${v(d.criado_por)}`];
+    case "lista_adicionar": return ["avisou que está acabando", `${v(d.produto)}${d.quantidade ? " · " + d.quantidade : ""}`];
+    case "lista_comprar": return ["marcou como comprado", `${v(d.produto)} · ${brl(d.valor)} · ${v(d.comprador)}`];
+    case "lista_excluir": return ["tirou da lista de compras", v(d.produto)];
+    case "lista_excluir_negado": return ["tentou tirar da lista item de outra pessoa (bloqueado)", v(d.produto)];
+    default: return [l.acao, ""];
+  }
+}
+
+async function carregarAtividades(reiniciar = false) {
+  if (reiniciar) atividadesAntes = null;
+  try {
+    const q = atividadesAntes ? `?antes=${atividadesAntes}` : "";
+    const d = await api(`/api/logs${q}`);
+    const html = (d.logs || []).map((l) => {
+      const [acao, det] = descreverLog(l);
+      return `<div class="atividade ${/negado|recusado/.test(l.acao) ? "negado" : ""}">
+        <div class="atividade-topo"><strong>${esc(l.email || "–")}</strong><small>${esc(dataHoraBR(l.quando))}</small></div>
+        <div>${esc(acao)}</div>${det ? `<div class="det">${esc(det)}</div>` : ""}
+      </div>`;
+    }).join("");
+    const box = $("#lista-atividades");
+    if (reiniciar) box.innerHTML = html || '<p class="muted">Nenhuma atividade registrada ainda.</p>';
+    else box.insertAdjacentHTML("beforeend", html);
+    atividadesAntes = d.mais;
+    $("#atividades-mais").hidden = !d.mais;
+  } catch (e) {
+    toast(erroAmigavel(e));
   }
 }
 
@@ -876,14 +936,15 @@ async function acaoAcesso(email, acao) {
    Render geral e eventos
    ========================================================= */
 function renderResponsaveis() {
-  const nomes = [...new Set(todos().map((r) => r.responsavel).filter(Boolean))].slice(0, 20);
-  $("#lista-responsaveis").innerHTML = nomes.map((n) => `<option value="${esc(n)}">`).join("");
+  const nomes = new Set([nomePadrao(), ...todosRegistros().map((r) => r.responsavel), ...custos.map((c) => c.comprador)].filter(Boolean));
+  $("#lista-responsaveis").innerHTML = [...nomes].slice(0, 20).map((n) => `<option value="${esc(n)}">`).join("");
 }
 
 function renderTudo() {
-  renderCustos();
   renderInicio();
   renderHistorico();
+  renderLista();
+  renderCustos();
   renderResponsaveis();
 }
 
@@ -892,60 +953,67 @@ function atualizarRede() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // abas
+  // navegação
   $$(".abas button").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.aba)));
-  window.addEventListener("hashchange", () => irPara(location.hash.slice(1)));
-
-  // atalhos da tela inicial
-  $$("[data-novo]").forEach((b) => b.addEventListener("click", () => {
-    novoRegistro(b.dataset.novo);
-    irPara("checklist");
+  $$("[data-ir]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.ir === "registrar" && !form().id.value) novoRegistro();
+    irPara(b.dataset.ir);
+    if (b.dataset.foco) setTimeout(() => $(b.dataset.foco)?.focus(), 80);
   }));
 
-  // formulário
+  // registrar
   const f = form();
-  f.addEventListener("submit", salvar);
-  f.addEventListener("change", (e) => {
-    if (e.target.name === "tipo") renderTarefas();
-    if (e.target.name === "tarefa") contarTarefas();
-  });
+  f.addEventListener("submit", salvarRegistro);
+  f.addEventListener("change", (e) => { if (e.target.name === "tarefa") contarTarefas(); });
   f.addEventListener("input", (e) => { if (e.target.closest(".medida")) atualizarDica(e.target); });
-  $("#marcar-todas").addEventListener("click", () => {
-    const caixas = $$('input[name="tarefa"]', f);
-    const todasMarcadas = caixas.every((c) => c.checked);
-    caixas.forEach((c) => (c.checked = !todasMarcadas));
-    contarTarefas();
-  });
-  $("#cancelar-edicao").addEventListener("click", () => novoRegistro(tipoAtual()));
+  $("#cancelar-edicao").addEventListener("click", () => { novoRegistro(); irPara("historico"); });
 
   // histórico
-  $("#filtro-tipo").addEventListener("change", renderHistorico);
-  $("#exportar").addEventListener("click", exportarCSV);
+  $("#exportar").addEventListener("click", exportarRegistrosCSV);
   $("#lista-historico").addEventListener("click", (e) => {
     const ed = e.target.closest("[data-editar]");
     const ex = e.target.closest("[data-excluir]");
-    if (ed) {
-      const r = registros.find((x) => String(x.id) === ed.dataset.editar);
-      if (r) editarRegistro(r);
-    }
-    if (ex) excluir(ex.dataset.excluir);
+    if (ed) { const r = registros.find((x) => String(x.id) === ed.dataset.editar); if (r) editarRegistro(r); }
+    if (ex) excluirRegistro(ex.dataset.excluir);
   });
 
-  // custos
-  $("#form-custo").addEventListener("submit", salvarCusto);
-  $("#custo-cancelar").addEventListener("click", novoCusto);
+  // compras
+  $("#form-lista").addEventListener("submit", avisarFalta);
+  $("#lista-faltando").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-comprei]");
+    const t = e.target.closest("[data-tirar]");
+    if (c) { const item = lista.faltando.find((i) => String(i.id) === c.dataset.comprei); if (item) abrirCompra({ item }); }
+    if (t) tirarDaLista(t.dataset.tirar);
+  });
+  $("#custo-novo").addEventListener("click", () => abrirCompra());
   $("#custo-mes").addEventListener("change", (e) => { mesCustos = e.target.value; renderCustos(); });
   $("#custo-exportar").addEventListener("click", exportarCustosCSV);
   $("#lista-custos").addEventListener("click", (e) => {
     const ed = e.target.closest("[data-editar-custo]");
     const ex = e.target.closest("[data-excluir-custo]");
-    if (ed) { const c = custos.find((x) => String(x.id) === ed.dataset.editarCusto); if (c) editarCusto(c); }
+    if (ed) { const c = custos.find((x) => String(x.id) === ed.dataset.editarCusto); if (c) abrirCompra({ custo: c }); }
     if (ex) excluirCusto(ex.dataset.excluirCusto);
   });
+  $("#form-compra").addEventListener("submit", salvarCompra);
+  $("#compra-cancelar").addEventListener("click", () => $("#dialogo-compra").close());
+
+  // menu do usuário
+  const botaoUsuario = $("#botao-usuario");
+  const menu = $("#menu-usuario");
+  botaoUsuario.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.hidden = !menu.hidden;
+    botaoUsuario.setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.hidden && !menu.contains(e.target)) { menu.hidden = true; botaoUsuario.setAttribute("aria-expanded", "false"); }
+  });
+  $("#botao-acessos").addEventListener("click", () => { menu.hidden = true; irPara("acessos"); });
+  $("#botao-atividades").addEventListener("click", () => { menu.hidden = true; irPara("atividades"); });
+  $("#aviso-acessos").addEventListener("click", () => irPara("acessos"));
+  $("#atividades-mais").addEventListener("click", () => carregarAtividades(false));
 
   // acessos
-  $("#botao-acessos").addEventListener("click", () => { $("#menu-usuario").hidden = true; irPara("acessos"); });
-  $("#aviso-acessos").addEventListener("click", () => irPara("acessos"));
   $("#aba-acessos").addEventListener("click", (e) => {
     const b = e.target.closest("[data-acesso]");
     if (b) acaoAcesso(b.dataset.email, b.dataset.acesso);
@@ -963,24 +1031,12 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("offline", atualizarRede);
   atualizarRede();
 
-  // menu do usuário
-  const botaoUsuario = $("#botao-usuario");
-  const menu = $("#menu-usuario");
-  botaoUsuario.addEventListener("click", (e) => {
-    e.stopPropagation();
-    menu.hidden = !menu.hidden;
-    botaoUsuario.setAttribute("aria-expanded", String(!menu.hidden));
-  });
-  document.addEventListener("click", (e) => {
-    if (!menu.hidden && !menu.contains(e.target)) { menu.hidden = true; botaoUsuario.setAttribute("aria-expanded", "false"); }
-  });
-
-  irPara(location.hash.slice(1) || "inicio", { rolar: false });
+  const abaInicial = location.hash.slice(1) || "inicio";
+  irPara(SO_ADMIN.includes(abaInicial) ? "inicio" : abaInicial, { rolar: false });
   renderTudo();
   verificarAcesso().then((ok) => {
     novoRegistro();
-    novoCusto();
-    if (ok && location.hash === "#acessos") irPara("acessos");
+    if (ok && SO_ADMIN.includes(abaInicial)) irPara(abaInicial);
     if (ok) sincronizar().then(carregar);
   });
 
@@ -988,7 +1044,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tinhaControle = !!navigator.serviceWorker.controller;
     let recarregou = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      // nova versão do site publicada: recarrega uma vez para usar os arquivos novos
       if (tinhaControle && !recarregou) { recarregou = true; location.reload(); }
     });
     navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {});

@@ -11,6 +11,9 @@ import * as logout from "../functions/api/auth/logout.js";
 import * as acessos from "../functions/api/acessos/index.js";
 import * as custos from "../functions/api/custos/index.js";
 import * as custoId from "../functions/api/custos/[id].js";
+import * as lista from "../functions/api/lista/index.js";
+import * as listaId from "../functions/api/lista/[id].js";
+import * as logs from "../functions/api/logs/index.js";
 
 const ROTAS = [
   [/^\/api\/registros\/?$/, registros, []],
@@ -22,6 +25,9 @@ const ROTAS = [
   [/^\/api\/acessos\/?$/, acessos, []],
   [/^\/api\/custos\/?$/, custos, []],
   [/^\/api\/custos\/([^/]+)\/?$/, custoId, ["id"]],
+  [/^\/api\/lista\/?$/, lista, []],
+  [/^\/api\/lista\/([^/]+)\/?$/, listaId, ["id"]],
+  [/^\/api\/logs\/?$/, logs, []],
 ];
 
 function respostaJson(dados, status) {

@@ -1,6 +1,6 @@
 // Utilidades compartilhadas pelas rotas da API.
 
-export const TIPOS = ["manutencao", "antes", "depois"];
+export const TIPOS = ["registro", "manutencao", "antes", "depois"];
 
 export const SCHEMA = `CREATE TABLE IF NOT EXISTS registros (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +27,11 @@ export const INDICE = "CREATE INDEX IF NOT EXISTS idx_registros_data ON registro
 export const MIGRACOES = [
   "ALTER TABLE registros ADD COLUMN criado_por TEXT",
   "ALTER TABLE registros ADD COLUMN atualizado_por TEXT",
+  // exclusão lógica
+  "ALTER TABLE registros ADD COLUMN excluido_em TEXT",
+  "ALTER TABLE registros ADD COLUMN excluido_por TEXT",
+  "ALTER TABLE custos ADD COLUMN excluido_em TEXT",
+  "ALTER TABLE custos ADD COLUMN excluido_por TEXT",
 ];
 
 export function json(dados, status = 200) {
@@ -65,6 +70,7 @@ function texto(v, max) {
 // Valida e normaliza o corpo recebido. Lança Error com mensagem amigável.
 export function validar(b) {
   if (!b || typeof b !== "object") throw new Error("Corpo inválido");
+  if (b.tipo === undefined || b.tipo === null || b.tipo === "") b.tipo = "registro";
   if (!TIPOS.includes(b.tipo)) throw new Error("Tipo inválido");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.data || "")) throw new Error("Data inválida");
   if (b.hora && !/^\d{2}:\d{2}$/.test(b.hora)) throw new Error("Hora inválida");

@@ -3,6 +3,7 @@
 // POST /api/acessos { email, acao }          → acao: "aprovar" | "recusar" | "remover"
 //   aprovar um e-mail que nunca pediu acesso já o deixa liberado (convite).
 import { json, erro } from "../_lib.js";
+import { registrarLog } from "../_log.js";
 import { ehAdmin, ehFixo, listaAdmins, listaFixos } from "../_auth.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,6 +23,7 @@ export async function onRequestGet({ env, data }) {
 }
 
 export async function onRequestPost({ request, env, data }) {
+  const log = (acao, detalhes) => registrarLog(env, request, { email: data.usuario?.email, acao, entidade: "acesso", entidadeId: detalhes.email, detalhes });
   if (!soAdmin(data)) return erro("Apenas o administrador pode liberar acessos", 403);
 
   let corpo;
@@ -38,7 +40,9 @@ export async function onRequestPost({ request, env, data }) {
 
   if (acao === "remover") {
     const r = await db.prepare("DELETE FROM acessos WHERE email = ?").bind(email).run();
-    return r.meta.changes ? json({ ok: true }) : erro("E-mail não encontrado", 404);
+    if (!r.meta.changes) return erro("E-mail não encontrado", 404);
+    await log("acesso_remover", { email });
+    return json({ ok: true });
   }
 
   const status = acao === "aprovar" ? "aprovado" : "recusado";
@@ -47,5 +51,6 @@ export async function onRequestPost({ request, env, data }) {
      VALUES (?, ?, datetime('now'), ?)
      ON CONFLICT(email) DO UPDATE SET status = excluded.status, decidido_em = excluded.decidido_em, decidido_por = excluded.decidido_por`
   ).bind(email, status, quem).run();
+  await log(acao === "aprovar" ? "acesso_aprovar" : "acesso_recusar", { email });
   return json({ ok: true, email, status });
 }

@@ -6,7 +6,10 @@ Site para o celular com o guia de tratamento da piscina (Splash Italiana, 44.800
 - **Hospedagem:** Cloudflare Worker com arquivos estáticos (deploy automático a cada push na `main`, configurado em `wrangler.jsonc`)
 - **Banco:** Cloudflare D1 (binding `DB`), tabela criada automaticamente
 - **Acesso:** login com Google. Quem não está liberado pede acesso ao entrar; o administrador (`ALLOWED_EMAILS` / `ADMIN_EMAILS`) libera ou recusa na tela **Acessos** (menu da foto). Cada registro guarda quem lançou e quem editou
-- **Custos:** aba para lançar compras (data, quem comprou, produto, quantidade, valor, loja) com total do mês, total por pessoa e CSV para prestação de contas
+- **Registrar:** um único formulário (quem fez, medição de cloro/pH/alcalinidade, o que foi feito, produtos colocados, observação)
+- **Compras:** lista do que está faltando (qualquer um avisa; quem compra toca em *Comprei* e informa valor) + gastos do mês, total por pessoa e CSV para prestação de contas
+- **Exclusão lógica:** registros, compras e itens da lista não são apagados do banco; só quem criou pode excluir (marcados com `excluido_em`/`excluido_por`)
+- **Atividades:** log de logins, pedidos de acesso, criações, edições (com o que mudou), exclusões e tentativas bloqueadas — tela no menu da foto, só administrador
 - **Cores:** azul #2A519F, preto #1B1B1C, cinza #666666
 - **Sem internet:** registros novos ficam no celular e são enviados quando a conexão voltar
 
@@ -28,8 +31,12 @@ functions/api/          API (Cloudflare Pages Functions)
   auth/logout.js        sair
   acessos/index.js      pedidos de acesso e membros (só administrador)
   custos/index.js       GET lista · POST lança compra
-  custos/[id].js        PUT · DELETE
-  _db.js                criação das tabelas registros, acessos e custos
+  custos/[id].js        PUT · DELETE (exclusão lógica)
+  lista/index.js        GET faltando/comprados · POST avisar que acabou
+  lista/[id].js         PUT comprar (gera o gasto) · DELETE tirar da lista
+  logs/index.js         GET atividades (só administrador)
+  _log.js               gravação do log e regra de quem pode excluir
+  _db.js                criação das tabelas registros, acessos, custos, lista_compras e logs
   registros/index.js    GET lista · POST cria
   registros/[id].js     GET · PUT · DELETE
 schema.sql              referência da tabela
@@ -76,7 +83,7 @@ npx wrangler dev   # variáveis locais em .dev.vars
 
 ## Ajustes comuns
 
-- **Tarefas do checklist:** `TAREFAS` em `public/app.js`. Não renomeie os IDs existentes (o histórico usa eles); só o texto.
+- **O que foi feito (serviços):** `TAREFAS` em `public/app.js`. Não renomeie os IDs existentes (o histórico usa eles); só o texto.
 - **Faixas de cloro/pH/alcalinidade:** função `avaliar()` em `public/app.js`.
 - **Texto do guia:** aba Guia em `public/index.html`.
 - Ao mudar arquivos do site, troque `CACHE = "piscina-v2"` em `public/sw.js` para a próxima versão se algum celular insistir na versão antiga.

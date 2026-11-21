@@ -1,22 +1,15 @@
-// GET  /api/registros?limite=200&tipo=manutencao  → lista
-// POST /api/registros                             → cria
-import { TIPOS, json, erro, validar, saida } from "../_lib.js";
+// GET  /api/registros?limite=200  → lista (sem os excluídos)
+// POST /api/registros            → cria
+import { json, erro, validar, saida } from "../_lib.js";
+import { registrarLog } from "../_log.js";
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const limite = Math.min(Math.max(parseInt(url.searchParams.get("limite") || "200", 10) || 200, 1), 1000);
-  const tipo = url.searchParams.get("tipo");
-
-  let sql = "SELECT * FROM registros";
-  const params = [];
-  if (tipo && TIPOS.includes(tipo)) {
-    sql += " WHERE tipo = ?";
-    params.push(tipo);
-  }
-  sql += " ORDER BY data DESC, COALESCE(hora, '') DESC, id DESC LIMIT ?";
-  params.push(limite);
-
-  const { results } = await env.DB.prepare(sql).bind(...params).all();
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM registros WHERE excluido_em IS NULL
+     ORDER BY data DESC, COALESCE(hora, '') DESC, id DESC LIMIT ?`
+  ).bind(limite).all();
   return json({ registros: results.map(saida) });
 }
 
@@ -44,5 +37,13 @@ export async function onRequestPost({ request, env, data }) {
     const existente = await env.DB.prepare("SELECT * FROM registros WHERE client_id = ?").bind(r.client_id).first();
     return json({ registro: existente ? saida(existente) : null, duplicado: true });
   }
+
+  await registrarLog(env, request, {
+    email: data.usuario?.email,
+    acao: "registro_criar",
+    entidade: "registro",
+    entidadeId: res.id,
+    detalhes: { data: res.data, responsavel: res.responsavel, cloro: res.cloro, ph: res.ph },
+  });
   return json({ registro: saida(res) }, 201);
 }

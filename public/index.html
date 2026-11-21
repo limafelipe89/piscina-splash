@@ -32,6 +32,7 @@
     <div id="menu-usuario" class="menu-usuario" hidden>
       <p><strong id="usuario-nome"></strong><br><small id="usuario-email"></small></p>
       <button type="button" id="botao-acessos" class="botao botao-sec botao-peq" hidden>Gerenciar acessos</button>
+      <button type="button" id="botao-atividades" class="botao botao-sec botao-peq" hidden>Atividades</button>
       <a class="botao botao-sec botao-peq" href="/api/auth/logout">Sair</a>
     </div>
   </header>
@@ -40,16 +41,16 @@
     <div class="login-caixa">
       <img src="/icon.svg" alt="" width="72" height="72">
       <h2>Piscina Splash</h2>
-      <p class="muted">Entre com a sua conta Google para ver o guia e lançar as manutenções.</p>
+      <p class="muted">Entre com a sua conta Google para registrar a manutenção da piscina.</p>
       <p id="login-erro" class="aviso aviso-alerta" hidden></p>
       <a class="botao botao-google" href="/api/auth/login">Entrar com Google</a>
-      <p class="muted login-rodape">Só e-mails autorizados conseguem entrar.</p>
+      <p class="muted login-rodape">Só pessoas liberadas conseguem entrar.</p>
     </div>
   </section>
 
   <main>
     <!-- ============ INÍCIO ============ -->
-    <section id="aba-inicio" class="aba ativa" aria-labelledby="tab-inicio">
+    <section id="aba-inicio" class="aba" aria-labelledby="tab-inicio">
       <div id="pendentes-aviso" class="aviso aviso-info" hidden></div>
       <button type="button" id="aviso-acessos" class="aviso aviso-alerta aviso-botao" hidden></button>
 
@@ -59,43 +60,167 @@
           <span id="ultima-data" class="muted"></span>
         </div>
         <div id="ultima-medicao" class="medidores">
-          <p class="muted">Nenhum registro ainda. Faça a primeira manutenção.</p>
+          <p class="muted">Nenhuma medição ainda.</p>
         </div>
         <div id="veredito" class="veredito" hidden></div>
       </article>
 
-      <div class="acoes-rapidas">
-        <button class="acao" data-novo="manutencao">
-          <span class="acao-ico" aria-hidden="true">🧽</span>
-          <span><strong>Manutenção</strong><small>Fim de semana, sem banhistas</small></span>
-        </button>
-        <button class="acao" data-novo="antes">
-          <span class="acao-ico" aria-hidden="true">✅</span>
-          <span><strong>Antes do banho</strong><small>Liberar a piscina</small></span>
-        </button>
-        <button class="acao" data-novo="depois">
-          <span class="acao-ico" aria-hidden="true">🌙</span>
-          <span><strong>Depois do uso</strong><small>Limpeza e nova medição</small></span>
-        </button>
-      </div>
+      <button type="button" class="botao botao-grande" data-ir="registrar">
+        <span aria-hidden="true">＋</span> Fazer registro
+      </button>
+
+      <article class="card">
+        <div class="card-cab">
+          <h2>Faltando comprar</h2>
+          <button type="button" class="link" data-ir="compras">Ver lista</button>
+        </div>
+        <ul id="inicio-faltando" class="lista-simples"></ul>
+        <button type="button" class="botao botao-sec" data-ir="compras" data-foco="#lista-produto">Avisar que um produto está acabando</button>
+      </article>
 
       <article class="card">
         <h2>Resumo do mês</h2>
         <div class="resumo">
           <div><span id="res-registros" class="num">0</span><small>registros</small></div>
           <div><span id="res-gasto" class="num">R$ 0</span><small>gasto em compras</small></div>
-          <div><span id="res-dias" class="num">–</span><small>dias desde a última manutenção</small></div>
+          <div><span id="res-dias" class="num">–</span><small>dias desde o último registro</small></div>
         </div>
       </article>
 
       <article class="card lembrete">
         <h2>Lembre-se</h2>
         <ul>
-          <li>Meça cloro livre e pH <strong>antes de cada banho</strong>, mesmo que a manutenção tenha sido feita na véspera.</li>
-          <li>Não aplique produto por calendário: só corrija o que a medição mostrar.</li>
+          <li>Meça cloro e pH <strong>antes de cada banho</strong>.</li>
+          <li>Só coloque produto se a medição mostrar que precisa.</li>
           <li>Nunca misture produtos químicos.</li>
         </ul>
       </article>
+    </section>
+
+    <!-- ============ REGISTRAR ============ -->
+    <section id="aba-registrar" class="aba" aria-labelledby="tab-registrar" hidden>
+      <form id="form" novalidate>
+        <input type="hidden" name="id">
+
+        <div id="editando-aviso" class="aviso aviso-info" hidden>
+          Editando registro. <button type="button" id="cancelar-edicao" class="link">Cancelar</button>
+        </div>
+
+        <article class="card">
+          <label class="campo">
+            <span>Quem fez</span>
+            <input type="text" name="responsavel" list="lista-responsaveis" autocomplete="name" maxlength="60" placeholder="Nome" required>
+            <datalist id="lista-responsaveis"></datalist>
+          </label>
+          <div class="grade2">
+            <label class="campo">
+              <span>Data</span>
+              <input type="date" name="data" required>
+            </label>
+            <label class="campo">
+              <span>Hora</span>
+              <input type="time" name="hora">
+            </label>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Medição</h2>
+          <div class="grade2">
+            <label class="campo medida">
+              <span>Cloro <small>ppm</small></span>
+              <input type="text" inputmode="decimal" name="cloro" placeholder="ex.: 2,5" autocomplete="off">
+              <em class="dica"></em>
+            </label>
+            <label class="campo medida">
+              <span>pH</span>
+              <input type="text" inputmode="decimal" name="ph" placeholder="ex.: 7,4" autocomplete="off">
+              <em class="dica"></em>
+            </label>
+          </div>
+          <label class="campo medida">
+            <span>Alcalinidade <small>ppm · se medir</small></span>
+            <input type="text" inputmode="decimal" name="alcalinidade" placeholder="ex.: 100" autocomplete="off">
+            <em class="dica"></em>
+          </label>
+          <input type="hidden" name="temperatura">
+        </article>
+
+        <article class="card">
+          <div class="card-cab">
+            <h2>O que foi feito</h2>
+            <span id="contador-tarefas" class="muted">0</span>
+          </div>
+          <ul id="lista-tarefas" class="tarefas"></ul>
+        </article>
+
+        <article class="card">
+          <label class="campo">
+            <span>Produtos colocados na água</span>
+            <textarea name="produtos" rows="2" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador; 150 g de elevador de pH"></textarea>
+          </label>
+          <label class="campo">
+            <span>Observação</span>
+            <textarea name="observacoes" rows="2" maxlength="2000" placeholder="Água turva, chuva, bomba fazendo barulho…"></textarea>
+          </label>
+        </article>
+
+        <div class="barra-salvar">
+          <button type="submit" class="botao" id="botao-salvar">Salvar registro</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ COMPRAS ============ -->
+    <section id="aba-compras" class="aba" aria-labelledby="tab-compras" hidden>
+      <article class="card">
+        <h2>Faltando comprar</h2>
+        <form id="form-lista" class="linha-add" novalidate>
+          <input type="text" id="lista-produto" name="produto" list="lista-produtos" maxlength="120" placeholder="O que está acabando?" autocomplete="off" required>
+          <button class="botao botao-peq" type="submit">Avisar</button>
+        </form>
+        <div id="lista-faltando" class="lista-itens"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-cab">
+          <h2>Gastos</h2>
+          <select id="custo-mes" class="mes" aria-label="Mês"></select>
+        </div>
+        <div class="total-mes">
+          <strong id="custo-total">R$ 0,00</strong>
+          <small id="custo-qtd" class="muted"></small>
+        </div>
+        <ul id="custo-por-pessoa" class="por-pessoa"></ul>
+        <div class="linha-botoes">
+          <button type="button" id="custo-novo" class="botao botao-sec botao-peq">Outra compra</button>
+          <button type="button" id="custo-exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
+        </div>
+      </article>
+
+      <div id="lista-custos" class="historico"></div>
+      <div id="lista-comprados" class="comprados"></div>
+
+      <datalist id="lista-produtos">
+        <option value="Pastilha de cloro (tricloro)">
+        <option value="Cloro granulado">
+        <option value="Elevador de pH">
+        <option value="Redutor de pH">
+        <option value="Alcalinizante">
+        <option value="Algicida">
+        <option value="Clarificante">
+        <option value="Reagentes do kit de teste">
+      </datalist>
+    </section>
+
+    <!-- ============ HISTÓRICO ============ -->
+    <section id="aba-historico" class="aba" aria-labelledby="tab-historico" hidden>
+      <div class="filtros">
+        <button type="button" id="exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
+      </div>
+      <div id="lista-historico" class="historico">
+        <p class="muted">Carregando…</p>
+      </div>
     </section>
 
     <!-- ============ GUIA ============ -->
@@ -154,7 +279,7 @@
         <div class="guia-corpo">
           <ol>
             <li><strong>Inspeção e limpeza:</strong> observe cor e transparência, retire folhas, escove paredes e fundo, limpe pré-filtro e filtro de pano conforme o manual Splash.</li>
-            <li><strong>Testes:</strong> meça cloro livre e pH; alcalinidade toda semana até estabilizar. Registre no checklist.</li>
+            <li><strong>Testes:</strong> meça cloro livre e pH; alcalinidade toda semana até estabilizar. Anote em Registrar.</li>
             <li><strong>Correções:</strong> ajuste pH e alcalinidade só se estiverem fora; corrija o cloro conforme medição e rótulo.</li>
             <li><strong>Filtração:</strong> respeite os limites de vazão e pressão do filtro, bomba e aquecedor. Não defina o tempo só pela potência do motor.</li>
           </ol>
@@ -191,7 +316,7 @@
               <tr class="total"><td>Total</td><td>R$ 75 – 205</td></tr>
             </tbody>
           </table>
-          <p><strong>Reserva sugerida: cerca de R$ 150/mês.</strong> Revise após 4–8 semanas com os gastos lançados no checklist. Comprar em kit (10 ou 50 unidades) sai bem mais barato que avulso.</p>
+          <p><strong>Reserva sugerida: cerca de R$ 150/mês.</strong> Revise após 4–8 semanas com os gastos lançados na aba Compras. Comprar em kit (10 ou 50 unidades) sai bem mais barato que avulso.</p>
           <p class="muted">Preços são estimativas. Confirme a dosagem na embalagem do produto comprado.</p>
         </div>
       </details>
@@ -223,182 +348,8 @@
       </details>
     </section>
 
-    <!-- ============ CHECKLIST ============ -->
-    <section id="aba-checklist" class="aba" aria-labelledby="tab-checklist" hidden>
-      <form id="form" novalidate>
-        <input type="hidden" name="id">
-        <div class="seg" role="radiogroup" aria-label="Tipo de registro">
-          <label><input type="radio" name="tipo" value="manutencao" checked><span>Manutenção</span></label>
-          <label><input type="radio" name="tipo" value="antes"><span>Antes do banho</span></label>
-          <label><input type="radio" name="tipo" value="depois"><span>Depois do uso</span></label>
-        </div>
 
-        <div id="editando-aviso" class="aviso aviso-info" hidden>
-          Editando registro. <button type="button" id="cancelar-edicao" class="link">Cancelar</button>
-        </div>
-
-        <article class="card">
-          <div class="grade2">
-            <label class="campo">
-              <span>Data</span>
-              <input type="date" name="data" required>
-            </label>
-            <label class="campo">
-              <span>Hora</span>
-              <input type="time" name="hora">
-            </label>
-          </div>
-          <label class="campo">
-            <span>Quem fez</span>
-            <input type="text" name="responsavel" list="lista-responsaveis" autocomplete="name" maxlength="60" placeholder="Nome" required>
-            <datalist id="lista-responsaveis"></datalist>
-          </label>
-        </article>
-
-        <article class="card">
-          <h2>Medições</h2>
-          <div class="grade2">
-            <label class="campo medida">
-              <span>Cloro livre <small>ppm</small></span>
-              <input type="text" inputmode="decimal" name="cloro" placeholder="ex.: 2,5" autocomplete="off">
-              <em class="dica" data-para="cloro"></em>
-            </label>
-            <label class="campo medida">
-              <span>pH</span>
-              <input type="text" inputmode="decimal" name="ph" placeholder="ex.: 7,4" autocomplete="off">
-              <em class="dica" data-para="ph"></em>
-            </label>
-            <label class="campo medida">
-              <span>Alcalinidade <small>ppm</small></span>
-              <input type="text" inputmode="decimal" name="alcalinidade" placeholder="ex.: 100" autocomplete="off">
-              <em class="dica" data-para="alcalinidade"></em>
-            </label>
-            <label class="campo medida">
-              <span>Temperatura <small>°C</small></span>
-              <input type="text" inputmode="decimal" name="temperatura" placeholder="ex.: 29" autocomplete="off">
-              <em class="dica" data-para="temperatura"></em>
-            </label>
-          </div>
-        </article>
-
-        <article class="card">
-          <div class="card-cab">
-            <h2>Tarefas</h2>
-            <span id="contador-tarefas" class="muted">0/0</span>
-          </div>
-          <ul id="lista-tarefas" class="tarefas"></ul>
-          <button type="button" id="marcar-todas" class="botao botao-sec botao-peq">Marcar todas</button>
-        </article>
-
-        <article class="card">
-          <h2>Produtos e observações</h2>
-          <label class="campo">
-            <span>Produtos aplicados e quantidades</span>
-            <textarea name="produtos" rows="3" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador; 150 g de elevador de pH"></textarea>
-          </label>
-          <input type="hidden" name="gasto">
-          <label class="campo">
-            <span>Observações</span>
-            <textarea name="observacoes" rows="3" maxlength="2000" placeholder="Cor da água, chuva, uso intenso, ruídos na bomba…"></textarea>
-          </label>
-        </article>
-
-        <div class="barra-salvar">
-          <button type="submit" class="botao" id="botao-salvar">Salvar registro</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- ============ HISTÓRICO ============ -->
-    <section id="aba-historico" class="aba" aria-labelledby="tab-historico" hidden>
-      <div class="filtros">
-        <select id="filtro-tipo" aria-label="Filtrar por tipo">
-          <option value="">Todos os tipos</option>
-          <option value="manutencao">Manutenção</option>
-          <option value="antes">Antes do banho</option>
-          <option value="depois">Depois do uso</option>
-        </select>
-        <button type="button" id="exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
-      </div>
-      <div id="lista-historico" class="historico">
-        <p class="muted">Carregando…</p>
-      </div>
-    </section>
-
-    <!-- ============ CUSTOS ============ -->
-    <section id="aba-custos" class="aba" aria-labelledby="tab-custos" hidden>
-      <article class="card">
-        <div class="card-cab">
-          <h2>Prestação de contas</h2>
-          <select id="custo-mes" class="mes" aria-label="Mês"></select>
-        </div>
-        <div class="total-mes">
-          <small>Total do período</small>
-          <strong id="custo-total">R$ 0,00</strong>
-          <small id="custo-qtd" class="muted"></small>
-        </div>
-        <ul id="custo-por-pessoa" class="por-pessoa"></ul>
-        <button type="button" id="custo-exportar" class="botao botao-sec botao-peq">Exportar CSV do período</button>
-      </article>
-
-      <form id="form-custo" class="card form-custo" novalidate>
-        <input type="hidden" name="id">
-        <div class="card-cab">
-          <h2 id="custo-form-titulo">Lançar compra</h2>
-          <button type="button" id="custo-cancelar" class="link" hidden>Cancelar edição</button>
-        </div>
-        <div class="grade2">
-          <label class="campo">
-            <span>Data da compra</span>
-            <input type="date" name="data" required>
-          </label>
-          <label class="campo">
-            <span>Valor <small>R$</small></span>
-            <input type="text" inputmode="decimal" name="valor" placeholder="0,00" autocomplete="off" required>
-          </label>
-        </div>
-        <label class="campo">
-          <span>Quem comprou</span>
-          <input type="text" name="comprador" list="lista-responsaveis" maxlength="60" placeholder="Nome" required>
-        </label>
-        <label class="campo">
-          <span>Produto</span>
-          <input type="text" name="produto" list="lista-produtos" maxlength="120" placeholder="ex.: Pastilha de tricloro 200 g" required>
-          <datalist id="lista-produtos">
-            <option value="Pastilha de tricloro 200 g">
-            <option value="Cloro granulado">
-            <option value="Elevador de pH">
-            <option value="Redutor de pH">
-            <option value="Ajustador de alcalinidade">
-            <option value="Algicida">
-            <option value="Clarificante">
-            <option value="Reagentes do kit de teste">
-            <option value="Kit de teste">
-            <option value="Dosador flutuante">
-            <option value="Peça / manutenção do equipamento">
-          </datalist>
-        </label>
-        <div class="grade2">
-          <label class="campo">
-            <span>Quantidade</span>
-            <input type="text" name="quantidade" maxlength="40" placeholder="ex.: 10 un, 1 kg">
-          </label>
-          <label class="campo">
-            <span>Loja</span>
-            <input type="text" name="loja" maxlength="80" placeholder="Opcional">
-          </label>
-        </div>
-        <label class="campo">
-          <span>Observação</span>
-          <input type="text" name="observacoes" maxlength="1000" placeholder="Opcional">
-        </label>
-        <button type="submit" class="botao" id="custo-salvar">Lançar compra</button>
-      </form>
-
-      <div id="lista-custos" class="historico"></div>
-    </section>
-
-    <!-- ============ ACESSOS (somente administrador) ============ -->
+    <!-- ============ ACESSOS (administrador) ============ -->
     <section id="aba-acessos" class="aba" hidden>
       <article class="card">
         <h2>Pedidos aguardando</h2>
@@ -407,7 +358,7 @@
       <article class="card">
         <h2>Pessoas com acesso</h2>
         <div id="acessos-aprovados" class="lista-acessos"></div>
-        <form id="form-convite" class="convite" novalidate>
+        <form id="form-convite" class="linha-add" novalidate>
           <input type="email" name="email" placeholder="e-mail@gmail.com" autocomplete="off" required>
           <button class="botao botao-peq" type="submit">Liberar</button>
         </form>
@@ -418,6 +369,12 @@
         <div id="acessos-recusados" class="lista-acessos"></div>
       </article>
     </section>
+
+    <!-- ============ ATIVIDADES (administrador) ============ -->
+    <section id="aba-atividades" class="aba" hidden>
+      <div id="lista-atividades" class="atividades"><p class="muted">Carregando…</p></div>
+      <button type="button" id="atividades-mais" class="botao botao-sec" hidden>Carregar mais</button>
+    </section>
   </main>
 
   <nav class="abas" role="tablist">
@@ -425,23 +382,64 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
       <span>Início</span>
     </button>
-    <button role="tab" id="tab-guia" data-aba="guia" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H8a3 3 0 0 1-3-3zm3 13h8M8 8h6M8 11.5h6"/></svg>
-      <span>Guia</span>
+    <button role="tab" id="tab-registrar" data-aba="registrar" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17"/></svg>
+      <span>Registrar</span>
     </button>
-    <button role="tab" id="tab-checklist" data-aba="checklist" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h10M9 12h10M9 19h10M3.5 5l1.5 1.5L7.5 4M3.5 12l1.5 1.5L7.5 11M3.5 19l1.5 1.5L7.5 18"/></svg>
-      <span>Checklist</span>
-    </button>
-    <button role="tab" id="tab-custos" data-aba="custos" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 7l2-3h14l2 3M12 10.5v6M14.2 11.6c-.4-.6-1.2-1-2.2-1-1.3 0-2.2.6-2.2 1.5 0 2.1 4.6 1 4.6 3.2 0 .9-1 1.6-2.4 1.6-1 0-1.9-.4-2.3-1"/></svg>
-      <span>Custos</span>
+    <button role="tab" id="tab-compras" data-aba="compras" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6M9.5 19.5a1 1 0 1 0 0 .01M17 19.5a1 1 0 1 0 0 .01"/></svg>
+      <span>Compras</span>
     </button>
     <button role="tab" id="tab-historico" data-aba="historico" aria-selected="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4"/></svg>
       <span>Histórico</span>
     </button>
+    <button role="tab" id="tab-guia" data-aba="guia" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H8a3 3 0 0 1-3-3zm3 13h8M8 8h6M8 11.5h6"/></svg>
+      <span>Guia</span>
+    </button>
   </nav>
+
+  <!-- janela para "Comprei" e para lançar/editar compra -->
+  <dialog id="dialogo-compra">
+    <form id="form-compra" novalidate>
+      <input type="hidden" name="item_id">
+      <input type="hidden" name="custo_id">
+      <h2 id="compra-titulo">Registrar compra</h2>
+      <label class="campo">
+        <span>Produto</span>
+        <input type="text" name="produto" list="lista-produtos" maxlength="120" required>
+      </label>
+      <div class="grade2">
+        <label class="campo">
+          <span>Valor <small>R$</small></span>
+          <input type="text" inputmode="decimal" name="valor" placeholder="0,00" autocomplete="off" required>
+        </label>
+        <label class="campo">
+          <span>Quantidade</span>
+          <input type="text" name="quantidade" maxlength="40" placeholder="ex.: 10 un">
+        </label>
+      </div>
+      <div class="grade2">
+        <label class="campo">
+          <span>Quem comprou</span>
+          <input type="text" name="comprador" list="lista-responsaveis" maxlength="60" required>
+        </label>
+        <label class="campo">
+          <span>Data</span>
+          <input type="date" name="data" required>
+        </label>
+      </div>
+      <label class="campo">
+        <span>Loja <small>opcional</small></span>
+        <input type="text" name="loja" maxlength="80">
+      </label>
+      <div class="linha-botoes">
+        <button type="button" class="botao botao-sec" id="compra-cancelar">Cancelar</button>
+        <button type="submit" class="botao" id="compra-salvar">Salvar</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="dialogo-acesso">
     <form method="dialog" id="form-acesso">
