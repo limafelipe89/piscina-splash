@@ -2,7 +2,7 @@
 
 Site para o celular com o guia de tratamento da piscina (Splash Italiana, 44.800 L, fibra, aquecimento solar) e um checklist que salva data, hora, quem fez, medições (cloro livre, pH, alcalinidade, temperatura), tarefas marcadas, produtos aplicados, gasto e observações.
 
-- **Endereço:** o domínio `workers.dev` do Worker `manutencaopiscina` (botão *Visit* no painel)
+- **Endereço:** https://manutencaopiscina.felipe-488.workers.dev
 - **Hospedagem:** Cloudflare Worker com arquivos estáticos (deploy automático a cada push na `main`, configurado em `wrangler.jsonc`)
 - **Banco:** Cloudflare D1 (binding `DB`), tabela criada automaticamente
 - **Acesso:** login com Google, só para os e-mails da lista `ALLOWED_EMAILS` (cada registro guarda o e-mail de quem lançou e de quem editou)
@@ -45,7 +45,8 @@ O Worker `manutencaopiscina` está ligado a este repositório (Settings → Buil
 1. Crie um projeto (ex.: `Piscina`).
 2. **APIs e serviços → Tela de consentimento OAuth** (ou *Google Auth Platform*): tipo **Externo**, nome do app, e-mail de suporte. Em **Público-alvo**, clique em **Publicar app** (os escopos usados — e-mail, perfil — não exigem verificação). Se preferir deixar em *Teste*, cadastre cada e-mail em *Usuários de teste*.
 3. **Credenciais / Clientes → Criar cliente OAuth → Aplicativo da Web**.
-   - **URIs de redirecionamento autorizados:** `https://<endereço do Worker>/api/auth/callback` (ex.: `https://manutencaopiscina.SEU-SUBDOMINIO.workers.dev/api/auth/callback`)
+   - **URIs de redirecionamento autorizados:** `https://manutencaopiscina.felipe-488.workers.dev/api/auth/callback`
+   - **Origens JavaScript autorizadas:** `https://manutencaopiscina.felipe-488.workers.dev`
 4. Copie o **ID do cliente** e a **Chave secreta do cliente**.
 
 ### No Cloudflare → Worker `manutencaopiscina` → Settings → Variables and secrets
