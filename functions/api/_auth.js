@@ -3,8 +3,9 @@
 // Variáveis no Cloudflare Pages:
 //   GOOGLE_CLIENT_ID      ID do cliente OAuth (Google Cloud)
 //   GOOGLE_CLIENT_SECRET  segredo do cliente OAuth (tipo Secret)
-//   ADMIN_EMAILS          administradores (aprovam novos membros), separados por vírgula
-//   ALLOWED_EMAILS        nome antigo de ADMIN_EMAILS (usado se ADMIN_EMAILS não existir)
+//   ADMIN_EMAILS          administradores (aprovam novos membros), separados por vírgula.
+//                         Se não existir, o administrador é o PRIMEIRO e-mail de ALLOWED_EMAILS.
+//   ALLOWED_EMAILS        e-mails liberados direto pela configuração (os que não são admin viram membros)
 // Demais pessoas pedem acesso pelo próprio login e ficam na tabela `acessos` até o admin liberar.
 //   SESSION_SECRET        opcional; se ausente, usa GOOGLE_CLIENT_SECRET para assinar a sessão
 
@@ -72,7 +73,7 @@ export async function lerSessao(request, env) {
     const dados = JSON.parse(dec.decode(deB64url(corpo)));
     if (!dados.exp || dados.exp < Date.now() / 1000) return null;
     const usuario = { email: dados.email, nome: dados.nome, foto: dados.foto, admin: ehAdmin(env, dados.email) };
-    if (usuario.admin) return usuario;
+    if (usuario.admin || ehFixo(env, dados.email)) return usuario;
     // membro comum: precisa continuar aprovado (remover ou recusar corta o acesso na hora)
     if (!env.DB) return null;
     const linha = await env.DB.prepare("SELECT status FROM acessos WHERE email = ?").bind(dados.email).first();
@@ -82,14 +83,29 @@ export async function lerSessao(request, env) {
   }
 }
 
-/* ---------- administradores ---------- */
+/* ---------- administradores e membros fixos ---------- */
+function listaEmails(valor) {
+  return String(valor || "").split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+}
+
+// Administradores: ADMIN_EMAILS; se não existir, só o PRIMEIRO e-mail de ALLOWED_EMAILS.
+export function listaAdmins(env) {
+  if (env.ADMIN_EMAILS) return listaEmails(env.ADMIN_EMAILS);
+  return listaEmails(env.ALLOWED_EMAILS).slice(0, 1);
+}
+
+// Membros liberados pela configuração (ALLOWED_EMAILS que não são administradores).
+export function listaFixos(env) {
+  const admins = listaAdmins(env);
+  return listaEmails(env.ALLOWED_EMAILS).filter((e) => !admins.includes(e));
+}
+
 export function ehAdmin(env, email) {
-  if (!email) return false;
-  const lista = String(env.ADMIN_EMAILS || env.ALLOWED_EMAILS || "")
-    .split(/[,;\s]+/)
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return lista.includes(String(email).toLowerCase());
+  return !!email && listaAdmins(env).includes(String(email).toLowerCase());
+}
+
+export function ehFixo(env, email) {
+  return !!email && listaFixos(env).includes(String(email).toLowerCase());
 }
 
 /* ---------- PKCE ---------- */

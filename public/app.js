@@ -835,7 +835,7 @@ function botaoAcao(email, acao, texto, classe) {
   return `<button type="button" class="botao ${classe} botao-peq" data-acesso="${esc(acao)}" data-email="${esc(email)}">${texto}</button>`;
 }
 
-function renderAcessos(admins = []) {
+function renderAcessos(admins = [], fixos = []) {
   const pend = acessos.filter((a) => a.status === "pendente");
   const aprov = acessos.filter((a) => a.status === "aprovado");
   const rec = acessos.filter((a) => a.status === "recusado");
@@ -843,7 +843,8 @@ function renderAcessos(admins = []) {
     ? pend.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "") + botaoAcao(p.email, "recusar", "Recusar", "botao-perigo"))).join("")
     : '<p class="muted">Nenhum pedido no momento.</p>';
   const adminsHTML = admins.map((e) => pessoaHTML({ email: e, nome: e === acesso.usuario?.email ? acesso.usuario.nome : e, foto: e === acesso.usuario?.email ? acesso.usuario.foto : null, status: "admin" }, '<span class="muted">Administrador</span>')).join("");
-  $("#acessos-aprovados").innerHTML = adminsHTML + aprov.map((p) => pessoaHTML(p, botaoAcao(p.email, "remover", "Remover acesso", "botao-perigo"))).join("");
+  const fixosHTML = fixos.map((e) => pessoaHTML({ email: e, nome: e, status: "fixo" }, '<span class="muted">Liberado na configuração do Cloudflare</span>')).join("");
+  $("#acessos-aprovados").innerHTML = adminsHTML + fixosHTML + aprov.map((p) => pessoaHTML(p, botaoAcao(p.email, "remover", "Remover acesso", "botao-perigo"))).join("");
   $("#card-recusados").hidden = !rec.length;
   $("#acessos-recusados").innerHTML = rec.map((p) => pessoaHTML(p, botaoAcao(p.email, "aprovar", "Liberar", "botao-sec") + botaoAcao(p.email, "remover", "Apagar", "botao-perigo"))).join("");
   acesso.pendentes = pend.length;
@@ -854,7 +855,7 @@ async function carregarAcessos() {
   try {
     const d = await api("/api/acessos");
     acessos = d.acessos || [];
-    renderAcessos(d.admins || []);
+    renderAcessos(d.admins || [], d.fixos || []);
   } catch (e) {
     toast(e instanceof ErroRede ? "Sem internet" : e.message);
   }

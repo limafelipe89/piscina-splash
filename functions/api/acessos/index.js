@@ -3,7 +3,7 @@
 // POST /api/acessos { email, acao }          → acao: "aprovar" | "recusar" | "remover"
 //   aprovar um e-mail que nunca pediu acesso já o deixa liberado (convite).
 import { json, erro } from "../_lib.js";
-import { ehAdmin } from "../_auth.js";
+import { ehAdmin, ehFixo, listaAdmins, listaFixos } from "../_auth.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,9 +18,7 @@ export async function onRequestGet({ env, data }) {
      FROM acessos
      ORDER BY CASE status WHEN 'pendente' THEN 0 WHEN 'aprovado' THEN 1 ELSE 2 END, solicitado_em DESC`
   ).all();
-  const admins = String(env.ADMIN_EMAILS || env.ALLOWED_EMAILS || "")
-    .split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
-  return json({ acessos: results, admins });
+  return json({ acessos: results, admins: listaAdmins(env), fixos: listaFixos(env) });
 }
 
 export async function onRequestPost({ request, env, data }) {
@@ -33,6 +31,7 @@ export async function onRequestPost({ request, env, data }) {
   if (!EMAIL_RE.test(email) || email.length > 254) return erro("E-mail inválido");
   if (!["aprovar", "recusar", "remover"].includes(acao)) return erro("Ação inválida");
   if (ehAdmin(env, email)) return erro("Administradores não podem ser alterados por aqui");
+  if (ehFixo(env, email)) return erro("Este e-mail está liberado na variável ALLOWED_EMAILS do Cloudflare; tire de lá para remover");
 
   const quem = data.usuario.email;
   const db = env.DB;

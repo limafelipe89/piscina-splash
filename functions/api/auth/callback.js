@@ -1,7 +1,7 @@
 // GET /api/auth/callback → o Google volta aqui com ?code=…&state=…
 import { garantirBanco } from "../_db.js";
 import {
-  googleAtivo, lerCookie, cookie, redirecionar, lerIdToken, ehAdmin, criarSessao,
+  googleAtivo, lerCookie, cookie, redirecionar, lerIdToken, ehAdmin, ehFixo, criarSessao,
   COOKIE_OAUTH, COOKIE_SESSAO,
 } from "../_auth.js";
 
@@ -44,7 +44,7 @@ export async function onRequestGet({ request, env }) {
     return falha("login_falhou");
   }
 
-  if (!ehAdmin(env, usuario.email)) {
+  if (!ehAdmin(env, usuario.email) && !ehFixo(env, usuario.email)) {
     await garantirBanco(env);
     const db = env.DB;
     const linha = await db.prepare("SELECT status FROM acessos WHERE email = ?").bind(usuario.email).first();

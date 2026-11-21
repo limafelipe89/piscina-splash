@@ -61,9 +61,10 @@ O Worker `manutencaopiscina` está ligado a este repositório (Settings → Buil
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | Text | ID do cliente |
 | `GOOGLE_CLIENT_SECRET` | Secret | Chave secreta do cliente |
-| `ALLOWED_EMAILS` | Text | e-mail(s) do **administrador**, que aprova novos membros (ex.: `lima.felipe@gmail.com`) |
+| `ALLOWED_EMAILS` | Text | o **primeiro** e-mail é o administrador (aprova novos membros); os demais ficam liberados direto. Ex.: `lima.felipe@gmail.com, outra@gmail.com` |
+| `ADMIN_EMAILS` | Text | opcional: lista explícita de administradores (substitui a regra do primeiro e-mail) |
 
-As variáveis valem a partir do próximo deploy (salvar no painel já gera um). Os demais membros não entram nessa variável: eles pedem acesso pelo próprio login e o administrador libera na tela **Acessos**. Remover alguém corta o acesso na hora.
+As variáveis valem a partir do próximo deploy (salvar no painel já gera um). Não é preciso colocar todo mundo nessa variável: quem não estiver nela pede acesso pelo próprio login e o administrador libera na tela **Acessos**. Remover alguém corta o acesso na hora.
 
 > Sem `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, o site usa o código de acesso `ACCESS_CODE` (se existir) ou fica aberto.
 
