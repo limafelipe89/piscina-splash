@@ -356,109 +356,125 @@ async function sincronizar() {
 }
 
 /* =========================================================
-   Navegação
+   Navegação (tela inicial com botões + botão Voltar)
    ========================================================= */
 const TITULOS = {
-  inicio: "Início", registrar: "Registrar", compras: "Compras", historico: "Histórico", guia: "Guia",
-  acessos: "Acessos", atividades: "Atividades",
+  inicio: "Início", registrar: "Registrar", sucesso: "Pronto", faltando: "Está acabando", comprei: "Comprei",
+  gastos: "Gastos", historico: "Histórico", guia: "Guia", acessos: "Acessos", atividades: "Atividades",
 };
 const SO_ADMIN = ["acessos", "atividades"];
+let abaAtual = "inicio";
 
 function irPara(aba, { rolar = true } = {}) {
   if (!TITULOS[aba]) aba = "inicio";
   if (SO_ADMIN.includes(aba) && !ehAdmin()) aba = "inicio";
+  abaAtual = aba;
   $$(".aba").forEach((s) => (s.hidden = s.id !== `aba-${aba}`));
-  $$(".abas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   $("#titulo-aba").textContent = TITULOS[aba];
+  $("#botao-voltar").hidden = aba === "inicio";
+  renderSaudacao();
   if (location.hash !== `#${aba}`) history.replaceState(null, "", `#${aba}`);
   if (rolar) window.scrollTo({ top: 0 });
   if (aba === "acessos") carregarAcessos();
   if (aba === "atividades") carregarAtividades(true);
 }
 
+function primeiroNome() {
+  const n = (acesso.usuario && acesso.usuario.nome) || lerLS(LS.responsavel, "") || "";
+  return n.split(" ")[0];
+}
+function renderSaudacao() {
+  const nome = primeiroNome();
+  $("#topo-sub").textContent = abaAtual === "inicio" && nome ? `Olá, ${nome}` : "Piscina Splash";
+}
+
 /* =========================================================
    Início
    ========================================================= */
-function medidorHTML(param, valor) {
-  const [rot, un] = ROTULOS[param];
-  const av = avaliar(param, valor);
-  const temValor = valor !== null && valor !== undefined;
-  return `<div class="medidor ${av ? av.nivel : ""}">
-    <small>${rot}</small>
-    <strong>${fmt(valor)}</strong>${un && temValor ? ` <small style="display:inline">${un}</small>` : ""}
-    ${av && av.texto ? `<div class="estado">${esc(av.texto)}</div>` : ""}
-  </div>`;
+function vereditoMedicao(r) {
+  const tem = (v) => v !== null && v !== undefined;
+  if (!r || (!tem(r.cloro) && !tem(r.ph))) return null;
+  const NOME = { cloro: "o cloro", ph: "o pH" };
+  const avs = ["cloro", "ph"].map((p) => [p, avaliar(p, r[p])]);
+  const faltando = avs.filter(([, a]) => !a).map(([p]) => NOME[p]);
+  const fora = avs.filter(([, a]) => a && a.nivel === "fora").map(([p]) => NOME[p]);
+  const atenc = avs.filter(([, a]) => a && a.nivel === "atencao").map(([p]) => NOME[p]);
+  const lista2 = (l) => l.join(" e ");
+  if (fora.length) return { nivel: "fora", titulo: "Não liberar o banho", texto: `Corrija ${lista2(fora)} antes de usar a piscina. Veja como no Guia.` };
+  if (faltando.length) return { nivel: "atencao", titulo: "Medição incompleta", texto: `Falta medir ${lista2(faltando)}.` };
+  if (atenc.length) {
+    const t = lista2(atenc);
+    return { nivel: "atencao", titulo: "Precisa ajustar", texto: `${t[0].toUpperCase() + t.slice(1)} ${atenc.length > 1 ? "estão" : "está"} um pouco fora do ideal. Veja no Guia como corrigir.` };
+  }
+  return { nivel: "ok", titulo: "Pode liberar o banho", texto: "Cloro e pH estão bons." };
 }
 
 function renderInicio() {
   const lst = todosRegistros();
   const tem = (v) => v !== null && v !== undefined;
   const ultima = lst.find((r) => tem(r.cloro) || tem(r.ph));
-  const ver = $("#veredito");
+  const box = $("#status-agua");
+  const ver = vereditoMedicao(ultima);
 
-  if (!ultima) {
-    $("#ultima-medicao").innerHTML = '<p class="muted">Nenhuma medição ainda. Toque em Fazer registro.</p>';
-    $("#ultima-data").textContent = "";
-    ver.hidden = true;
+  if (!ver) {
+    box.className = "status-agua neutro";
+    $("#status-titulo").textContent = "Ainda sem medição";
+    $("#status-texto").textContent = "Toque em Registrar para anotar a medição.";
+    $("#status-valores").textContent = "";
   } else {
-    const params = ["cloro", "ph"].concat(tem(ultima.alcalinidade) ? ["alcalinidade"] : []);
-    $("#ultima-medicao").innerHTML = params.map((p) => medidorHTML(p, ultima[p])).join("");
-    $("#ultima-data").textContent = `${dataBR(ultima.data)}${ultima.hora ? " · " + ultima.hora : ""} · ${ultima.responsavel || ""}`;
-
-    const avs = ["cloro", "ph"].map((p) => [p, avaliar(p, ultima[p])]);
-    const faltando = avs.filter(([, a]) => !a).map(([p]) => ROTULOS[p][0]);
-    const fora = avs.filter(([, a]) => a && a.nivel === "fora").map(([p]) => ROTULOS[p][0]);
-    const atenc = avs.filter(([, a]) => a && a.nivel === "atencao").map(([p]) => ROTULOS[p][0]);
     const dias = diasDesde(ultima.data);
-    const velha = dias !== null && dias >= 1
-      ? `<small>Medido ${dias === 1 ? "ontem" : "há " + dias + " dias"}: meça de novo antes do banho.</small>` : "";
-    let cls, txt;
-    if (fora.length) { cls = "fora"; txt = `Não liberar banho: corrigir ${fora.join(" e ")}.`; }
-    else if (faltando.length) { cls = "atencao"; txt = `Falta medir ${faltando.join(" e ")}.`; }
-    else if (atenc.length) { cls = "atencao"; txt = `Atenção: ajustar ${atenc.join(" e ")}.`; }
-    else { cls = "ok"; txt = "Água boa: cloro e pH na faixa."; }
-    ver.className = `veredito ${cls}`;
-    ver.innerHTML = esc(txt) + velha;
-    ver.hidden = false;
+    const quando = dias === 0 ? `hoje${ultima.hora ? " às " + ultima.hora : ""}` : dias === 1 ? "ontem" : `há ${dias} dias`;
+    let { nivel, titulo, texto } = ver;
+    if (dias >= 1 && nivel === "ok") { nivel = "atencao"; titulo = "Meça de novo antes do banho"; texto = `A última medição estava boa, mas foi ${quando}.`; }
+    box.className = `status-agua ${nivel}`;
+    $("#status-titulo").textContent = titulo;
+    $("#status-texto").textContent = texto;
+    const valores = ["cloro", "ph", "alcalinidade"].filter((p) => tem(ultima[p])).map((p) => `${ROTULOS[p][0]} ${fmt(ultima[p])}`).join(" · ");
+    $("#status-valores").textContent = `${valores} — medido ${quando} por ${ultima.responsavel || "–"}`;
   }
 
-  // faltando comprar
-  const f = lista.faltando || [];
-  $("#inicio-faltando").innerHTML = f.length
-    ? f.slice(0, 5).map((i) => `<li><span>${esc(i.produto)}${i.quantidade ? ` <small>· ${esc(i.quantidade)}</small>` : ""}</span><small>${esc(dataHoraBR(i.pedido_em).slice(0, 5))}</small></li>`).join("") +
-      (f.length > 5 ? `<li class="vazio">e mais ${f.length - 5}…</li>` : "")
-    : '<li class="vazio">Nada faltando no momento.</li>';
+  const nf = (lista.faltando || []).length;
+  const badge = $("#badge-faltando");
+  badge.hidden = !nf;
+  badge.textContent = nf;
 
-  // resumo do mês
   const mes = hojeISO().slice(0, 7);
-  $("#res-registros").textContent = lst.filter((r) => (r.data || "").startsWith(mes)).length;
   const gastoMes = custos.filter((c) => (c.data || "").startsWith(mes)).reduce((s, c) => s + (Number(c.valor) || 0), 0);
-  $("#res-gasto").textContent = brl(gastoMes).replace(",00", "");
-  const d = lst.length ? diasDesde(lst[0].data) : null;
-  $("#res-dias").textContent = d === null ? "–" : d;
+  $("#tile-gasto").textContent = gastoMes ? `${brl(gastoMes)} este mês` : "Prestação de contas";
 
   const av = $("#pendentes-aviso");
   av.hidden = !pendentes.length;
   av.textContent = pendentes.length ? `${pendentes.length} registro(s) guardado(s) no celular, esperando internet para enviar.` : "";
+  renderSaudacao();
 }
 
 /* =========================================================
-   Registrar
+   Registrar (3 passos)
    ========================================================= */
 const form = () => $("#form");
+let passoAtual = 1;
 
-function renderTarefas(marcadas = []) {
-  $("#lista-tarefas").innerHTML = TAREFAS.map(([id, txt]) => `
-    <li><label>
-      <input type="checkbox" name="tarefa" value="${id}" ${marcadas.includes(id) ? "checked" : ""}>
-      <span>${esc(txt)}</span>
-    </label></li>`).join("");
-  contarTarefas();
+function mostrarPasso(n) {
+  passoAtual = n;
+  $$(".passo", form()).forEach((p) => (p.hidden = Number(p.dataset.passo) !== n));
+  $$("[data-passo-ind]").forEach((s) => s.classList.toggle("feito", Number(s.dataset.passoInd) <= n));
+  $("#passo-voltar").textContent = n === 1 ? "Cancelar" : "Voltar";
+  $("#passo-proximo").hidden = n === 3;
+  $("#botao-salvar").hidden = n !== 3;
+  if (n === 3) atualizarResumoQuem();
+  window.scrollTo({ top: 0 });
 }
 
-function contarTarefas() {
-  const n = $$('input[name="tarefa"]:checked', form()).length;
-  $("#contador-tarefas").textContent = n ? `${n} marcado(s)` : "";
+function montarChipsValor() {
+  $$(".chips-valor").forEach((box) => {
+    box.innerHTML = box.dataset.valores.split(";").map((v) => `<button type="button" data-valor="${v}">${v}</button>`).join("");
+  });
+}
+
+function sincronizarChips(medida) {
+  const input = $("input", medida);
+  const v = num(input.value);
+  $$(".chips-valor button", medida).forEach((b) => b.classList.toggle("sel", v !== null && !Number.isNaN(v) && num(b.dataset.valor) === v));
 }
 
 function atualizarDica(input) {
@@ -467,15 +483,32 @@ function atualizarDica(input) {
   const v = num(input.value);
   const dica = $(".dica", campo);
   campo.classList.remove("ok", "atencao", "fora");
-  if (v === null) { dica.textContent = ""; return; }
-  if (Number.isNaN(v)) { campo.classList.add("fora"); dica.textContent = "Número inválido"; return; }
-  const av = avaliar(input.name, v);
-  if (av && av.nivel) campo.classList.add(av.nivel);
-  dica.textContent = av ? av.texto : "";
+  if (v === null) dica.textContent = "";
+  else if (Number.isNaN(v)) { campo.classList.add("fora"); dica.textContent = "Número inválido"; }
+  else {
+    const av = avaliar(input.name, v);
+    if (av && av.nivel) campo.classList.add(av.nivel);
+    dica.textContent = av ? av.texto : "";
+  }
+  sincronizarChips(campo);
+}
+
+function renderTarefas(marcadas = []) {
+  $("#lista-tarefas").innerHTML = TAREFAS.map(([id, txt]) => `
+    <li><label>
+      <input type="checkbox" name="tarefa" value="${id}" ${marcadas.includes(id) ? "checked" : ""}>
+      <span>${esc(txt)}</span>
+    </label></li>`).join("");
 }
 
 function nomePadrao() {
   return lerLS(LS.responsavel, "") || (acesso.usuario && acesso.usuario.nome) || "";
+}
+
+function atualizarResumoQuem() {
+  const f = form();
+  const quando = f.data.value === hojeISO() ? "hoje" : dataCurta(f.data.value);
+  $("#quem-quando-resumo").textContent = `${f.responsavel.value || "Sem nome"} · ${quando}${f.hora.value ? " às " + f.hora.value : ""}`;
 }
 
 function novoRegistro() {
@@ -486,9 +519,11 @@ function novoRegistro() {
   f.hora.value = horaAgora();
   f.responsavel.value = nomePadrao();
   $("#editando-aviso").hidden = true;
-  $("#botao-salvar").textContent = "Salvar registro";
+  $(".mais-medida").open = false;
+  $(".quem-quando", f).open = false;
   renderTarefas();
   $$(".medida input", f).forEach(atualizarDica);
+  mostrarPasso(1);
 }
 
 function editarRegistro(r) {
@@ -501,17 +536,28 @@ function editarRegistro(r) {
   for (const k of ["cloro", "ph", "alcalinidade", "temperatura"]) {
     f[k].value = r[k] === null || r[k] === undefined ? "" : String(r[k]).replace(".", ",");
   }
+  $(".mais-medida").open = r.alcalinidade !== null && r.alcalinidade !== undefined;
   f.produtos.value = r.produtos || "";
   f.observacoes.value = r.observacoes || "";
   renderTarefas(r.tarefas || []);
   $$(".medida input", f).forEach(atualizarDica);
   $("#editando-aviso").hidden = false;
-  $("#botao-salvar").textContent = "Salvar alterações";
   irPara("registrar");
+  mostrarPasso(1);
+}
+
+function adicionarProduto(nome) {
+  const ta = form().produtos;
+  const atual = ta.value.trim();
+  if (atual.toLowerCase().includes(nome.toLowerCase())) return;
+  ta.value = atual ? `${atual}; ${nome}` : nome;
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
 }
 
 async function salvarRegistro(ev) {
   ev.preventDefault();
+  if (passoAtual !== 3) return;
   const f = form();
   const dados = {
     tipo: "registro",
@@ -524,41 +570,53 @@ async function salvarRegistro(ev) {
   };
   for (const k of ["cloro", "ph", "alcalinidade", "temperatura"]) {
     const v = num(f[k].value);
-    if (Number.isNaN(v)) return toast(`Valor inválido em ${ROTULOS[k][0]}`);
+    if (Number.isNaN(v)) { mostrarPasso(1); return toast(`Valor inválido em ${ROTULOS[k][0]}`); }
     dados[k] = v;
   }
-  if (!dados.data) return toast("Informe a data");
-  if (!dados.responsavel) return toast("Informe quem fez");
+  if (!dados.responsavel || !dados.data) { $(".quem-quando", f).open = true; return toast("Informe quem fez e a data"); }
   const vazio = dados.cloro === null && dados.ph === null && dados.alcalinidade === null && !dados.tarefas.length && !dados.produtos && !dados.observacoes;
-  if (vazio) return toast("Preencha a medição ou marque o que foi feito");
+  if (vazio) { mostrarPasso(1); return toast("Preencha a medição ou marque o que foi feito"); }
   gravarLS(LS.responsavel, dados.responsavel);
 
+  const editando = !!f.id.value;
   const botao = $("#botao-salvar");
   botao.disabled = true;
+  let offline = false;
   try {
-    if (f.id.value) {
+    if (editando) {
       await api(`/api/registros/${f.id.value}`, { method: "PUT", body: JSON.stringify(dados) });
-      toast("Registro atualizado");
     } else {
       dados.client_id = uuid();
       try {
         await api("/api/registros", { method: "POST", body: JSON.stringify(dados) });
-        toast("Registro salvo");
       } catch (e) {
         if (!(e instanceof ErroRede)) throw e;
         pendentes.push(dados);
         gravarLS(LS.pendentes, pendentes);
-        toast("Sem internet: guardado no celular e enviado depois");
+        offline = true;
       }
     }
-    await carregar();
+    mostrarSucesso(dados, { editando, offline });
     novoRegistro();
-    irPara("inicio");
+    carregar();
   } catch (e) {
     toast(erroAmigavel(e));
   } finally {
     botao.disabled = false;
   }
+}
+
+function mostrarSucesso(dados, { editando, offline }) {
+  $("#sucesso-titulo").textContent = editando ? "Registro atualizado!" : "Registro salvo!";
+  const ver = vereditoMedicao(dados);
+  const box = $("#sucesso-veredito");
+  if (ver) {
+    box.className = `veredito ${ver.nivel}`;
+    box.innerHTML = `${esc(ver.titulo)}<small>${esc(ver.texto)}</small>`;
+    box.hidden = false;
+  } else box.hidden = true;
+  $("#sucesso-texto").textContent = offline ? "Você está sem internet. O registro ficou guardado no celular e será enviado sozinho quando a conexão voltar." : "Obrigado por cuidar da piscina.";
+  irPara("sucesso");
 }
 
 /* =========================================================
@@ -641,15 +699,20 @@ function custosDoPeriodo() {
 
 function renderLista() {
   const f = lista.faltando || [];
+  // tela "Está acabando": o que já foi avisado
   $("#lista-faltando").innerHTML = f.length ? f.map((i) => `
     <div class="item-lista">
       <div><strong>${esc(i.produto)}</strong>${i.quantidade ? ` · ${esc(i.quantidade)}` : ""}
         <div class="muted">Avisado por ${esc(i.pedido_nome || i.pedido_por || "–")} em ${esc(dataHoraBR(i.pedido_em))}</div></div>
-      <div class="reg-acoes">
-        <button type="button" class="botao botao-peq" data-comprei="${i.id}">Comprei</button>
-        ${possoExcluir(i.pedido_por) ? `<button type="button" class="botao botao-perigo botao-peq" data-tirar="${i.id}">Tirar</button>` : ""}
-      </div>
-    </div>`).join("") : '<p class="muted">Nada faltando. Quando algo estiver acabando, escreva acima e toque em Avisar.</p>';
+      ${possoExcluir(i.pedido_por) ? `<div class="reg-acoes"><button type="button" class="botao botao-perigo botao-peq" data-tirar="${i.id}">Tirar da lista</button></div>` : ""}
+    </div>`).join("") : '<p class="muted">Nada na lista. Toque em um produto acima para avisar que está acabando.</p>';
+
+  // tela "Comprei": um botão grande por item faltando
+  $("#lista-comprar").innerHTML = f.length ? f.map((i) => `
+    <button type="button" class="botao-comprar" data-comprei="${i.id}">
+      <span><strong>${esc(i.produto)}</strong><small>Avisado por ${esc(i.pedido_nome || i.pedido_por || "–")}</small></span>
+      <span class="seta">Comprei ›</span>
+    </button>`).join("") : '<p class="muted">Nada na lista de faltando. Se comprou algo, toque em "Comprei outra coisa".</p>';
 
   const c = lista.comprados || [];
   $("#lista-comprados").innerHTML = c.length
@@ -700,18 +763,16 @@ function renderCustos() {
   $("#lista-custos").innerHTML = html;
 }
 
-async function avisarFalta(ev) {
-  ev.preventDefault();
-  const input = $("#lista-produto");
-  const produto = input.value.trim();
-  if (!produto) return toast("Escreva o produto que está acabando");
+async function avisarFalta(produto) {
+  if (!produto) { toast("Escreva o produto que está acabando"); return false; }
   try {
     const r = await api("/api/lista", { method: "POST", body: JSON.stringify({ produto, nome: nomePadrao() }) });
-    toast(r.jaNaLista ? "Esse produto já está na lista" : "Produto adicionado à lista");
-    input.value = "";
+    toast(r.jaNaLista ? `${produto} já estava na lista` : `${produto} adicionado à lista`);
     await carregar();
+    return true;
   } catch (e) {
     toast(erroAmigavel(e));
+    return false;
   }
 }
 
@@ -727,6 +788,12 @@ async function tirarDaLista(id) {
 }
 
 // Janela única para: "Comprei" (item da lista), compra avulsa e edição de compra
+function atualizarResumoCompra() {
+  const f = $("#form-compra");
+  const quando = f.data.value === hojeISO() ? "hoje" : dataCurta(f.data.value);
+  $("#compra-resumo").textContent = `Comprado por ${f.comprador.value || "–"} · ${quando}`;
+}
+
 function abrirCompra({ item = null, custo = null } = {}) {
   const f = $("#form-compra");
   f.reset();
@@ -739,9 +806,11 @@ function abrirCompra({ item = null, custo = null } = {}) {
   f.comprador.value = custo ? custo.comprador : nomePadrao();
   f.data.value = custo ? custo.data : hojeISO();
   f.loja.value = custo ? custo.loja || "" : "";
-  $("#compra-titulo").textContent = item ? "Comprei" : custo ? "Editar compra" : "Lançar compra";
+  $(".quem-quando", f).open = !!custo;
+  atualizarResumoCompra();
+  $("#compra-titulo").textContent = item ? `Comprei: ${item.produto}` : custo ? "Editar compra" : "Comprei outra coisa";
   $("#dialogo-compra").showModal();
-  setTimeout(() => (item ? f.valor : f.produto).focus(), 60);
+  setTimeout(() => (item || custo ? f.valor : f.produto).focus(), 60);
 }
 
 async function salvarCompra(ev) {
@@ -953,20 +1022,47 @@ function atualizarRede() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  montarChipsValor();
+
   // navegação
-  $$(".abas button").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.aba)));
-  $$("[data-ir]").forEach((b) => b.addEventListener("click", () => {
+  $("#botao-voltar").addEventListener("click", () => {
+    if (abaAtual === "registrar" && passoAtual > 1) return mostrarPasso(passoAtual - 1);
+    irPara("inicio");
+  });
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-ir]");
+    if (!b) return;
     if (b.dataset.ir === "registrar" && !form().id.value) novoRegistro();
     irPara(b.dataset.ir);
-    if (b.dataset.foco) setTimeout(() => $(b.dataset.foco)?.focus(), 80);
-  }));
+  });
 
-  // registrar
+  // registrar: passos
   const f = form();
   f.addEventListener("submit", salvarRegistro);
-  f.addEventListener("change", (e) => { if (e.target.name === "tarefa") contarTarefas(); });
-  f.addEventListener("input", (e) => { if (e.target.closest(".medida")) atualizarDica(e.target); });
+  f.addEventListener("keydown", (e) => {
+    // Enter no teclado do celular não envia o formulário antes do último passo
+    if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); e.target.blur(); }
+  });
+  $("#passo-proximo").addEventListener("click", () => mostrarPasso(Math.min(3, passoAtual + 1)));
+  $("#passo-voltar").addEventListener("click", () => {
+    if (passoAtual === 1) { novoRegistro(); irPara("inicio"); } else mostrarPasso(passoAtual - 1);
+  });
   $("#cancelar-edicao").addEventListener("click", () => { novoRegistro(); irPara("historico"); });
+  f.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chips-valor button");
+    if (chip) {
+      const medida = chip.closest(".medida");
+      const input = $("input", medida);
+      input.value = chip.classList.contains("sel") ? "" : chip.dataset.valor; // tocar de novo desmarca
+      atualizarDica(input);
+    }
+    const prod = e.target.closest("[data-produto]");
+    if (prod) adicionarProduto(prod.dataset.produto);
+  });
+  f.addEventListener("input", (e) => {
+    if (e.target.closest(".medida")) atualizarDica(e.target);
+    if (["responsavel", "data", "hora"].includes(e.target.name)) atualizarResumoQuem();
+  });
 
   // histórico
   $("#exportar").addEventListener("click", exportarRegistrosCSV);
@@ -977,15 +1073,32 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ex) excluirRegistro(ex.dataset.excluir);
   });
 
-  // compras
-  $("#form-lista").addEventListener("submit", avisarFalta);
+  // está acabando
+  $("#form-lista").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = $("#lista-produto");
+    avisarFalta(input.value.trim()).then((ok) => { if (ok) input.value = ""; });
+  });
+  $("#chips-faltando").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-falta]");
+    if (b) avisarFalta(b.dataset.falta);
+  });
   $("#lista-faltando").addEventListener("click", (e) => {
-    const c = e.target.closest("[data-comprei]");
     const t = e.target.closest("[data-tirar]");
-    if (c) { const item = lista.faltando.find((i) => String(i.id) === c.dataset.comprei); if (item) abrirCompra({ item }); }
     if (t) tirarDaLista(t.dataset.tirar);
   });
+
+  // comprei
+  $("#lista-comprar").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-comprei]");
+    if (c) { const item = lista.faltando.find((i) => String(i.id) === c.dataset.comprei); if (item) abrirCompra({ item }); }
+  });
   $("#custo-novo").addEventListener("click", () => abrirCompra());
+  $("#form-compra").addEventListener("submit", salvarCompra);
+  $("#form-compra").addEventListener("input", (e) => { if (["comprador", "data"].includes(e.target.name)) atualizarResumoCompra(); });
+  $("#compra-cancelar").addEventListener("click", () => $("#dialogo-compra").close());
+
+  // gastos
   $("#custo-mes").addEventListener("change", (e) => { mesCustos = e.target.value; renderCustos(); });
   $("#custo-exportar").addEventListener("click", exportarCustosCSV);
   $("#lista-custos").addEventListener("click", (e) => {
@@ -994,8 +1107,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ed) { const c = custos.find((x) => String(x.id) === ed.dataset.editarCusto); if (c) abrirCompra({ custo: c }); }
     if (ex) excluirCusto(ex.dataset.excluirCusto);
   });
-  $("#form-compra").addEventListener("submit", salvarCompra);
-  $("#compra-cancelar").addEventListener("click", () => $("#dialogo-compra").close());
 
   // menu do usuário
   const botaoUsuario = $("#botao-usuario");
@@ -1031,12 +1142,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("offline", atualizarRede);
   atualizarRede();
 
+  novoRegistro();
   const abaInicial = location.hash.slice(1) || "inicio";
-  irPara(SO_ADMIN.includes(abaInicial) ? "inicio" : abaInicial, { rolar: false });
+  const abrir = ["sucesso", "registrar"].includes(abaInicial) ? "inicio" : abaInicial;
+  irPara(SO_ADMIN.includes(abrir) ? "inicio" : abrir, { rolar: false });
   renderTudo();
   verificarAcesso().then((ok) => {
     novoRegistro();
-    if (ok && SO_ADMIN.includes(abaInicial)) irPara(abaInicial);
+    renderTudo();
+    if (ok && SO_ADMIN.includes(abrir)) irPara(abrir);
     if (ok) sincronizar().then(carregar);
   });
 

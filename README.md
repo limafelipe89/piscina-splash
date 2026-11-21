@@ -6,8 +6,9 @@ Site para o celular com o guia de tratamento da piscina (Splash Italiana, 44.800
 - **Hospedagem:** Cloudflare Worker com arquivos estáticos (deploy automático a cada push na `main`, configurado em `wrangler.jsonc`)
 - **Banco:** Cloudflare D1 (binding `DB`), tabela criada automaticamente
 - **Acesso:** login com Google. Quem não está liberado pede acesso ao entrar; o administrador (`ALLOWED_EMAILS` / `ADMIN_EMAILS`) libera ou recusa na tela **Acessos** (menu da foto). Cada registro guarda quem lançou e quem editou
-- **Registrar:** um único formulário (quem fez, medição de cloro/pH/alcalinidade, o que foi feito, produtos colocados, observação)
-- **Compras:** lista do que está faltando (qualquer um avisa; quem compra toca em *Comprei* e informa valor) + gastos do mês, total por pessoa e CSV para prestação de contas
+- **Tela inicial:** aviso da água em cores (pode liberar / ajustar / não liberar) e 6 botões grandes: Registrar, Está acabando, Comprei, Gastos, Histórico e Guia. Cada tela tem botão Voltar
+- **Registrar em 3 passos:** medição tocando nos valores do kit (cloro, pH e, se medir, alcalinidade) → o que foi feito → produtos colocados; quem fez e data vêm preenchidos. Ao salvar, mostra se pode liberar o banho
+- **Está acabando / Comprei / Gastos:** qualquer um avisa o que está faltando; quem compra toca no item em *Comprei* e informa o valor, que entra nos gastos do mês (total por pessoa e CSV para prestação de contas)
 - **Exclusão lógica:** registros, compras e itens da lista não são apagados do banco; só quem criou pode excluir (marcados com `excluido_em`/`excluido_por`)
 - **Atividades:** log de logins, pedidos de acesso, criações, edições (com o que mudou), exclusões e tentativas bloqueadas — tela no menu da foto, só administrador
 - **Cores:** azul #2A519F, preto #1B1B1C, cinza #666666
@@ -85,5 +86,6 @@ npx wrangler dev   # variáveis locais em .dev.vars
 
 - **O que foi feito (serviços):** `TAREFAS` em `public/app.js`. Não renomeie os IDs existentes (o histórico usa eles); só o texto.
 - **Faixas de cloro/pH/alcalinidade:** função `avaliar()` em `public/app.js`.
+- **Valores dos botões de medição:** atributo `data-valores` em `public/index.html` (ex.: `0,5;1;1,5;2;3;5`).
 - **Texto do guia:** aba Guia em `public/index.html`.
 - Ao mudar arquivos do site, troque `CACHE = "piscina-v2"` em `public/sw.js` para a próxima versão se algum celular insistir na versão antiga.

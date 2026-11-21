@@ -15,12 +15,15 @@
 <body>
   <header class="topo">
     <div class="topo-linha">
-      <div>
-        <p class="topo-sub">Splash Italiana · 44.800 L · fibra · solar</p>
+      <button type="button" id="botao-voltar" class="voltar" hidden aria-label="Voltar ao início">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="topo-titulo">
+        <p class="topo-sub" id="topo-sub">Piscina Splash</p>
         <h1 id="titulo-aba">Início</h1>
       </div>
       <div class="topo-dir">
-        <span id="status-rede" class="rede" hidden>Offline</span>
+        <span id="status-rede" class="rede" hidden>Sem internet</span>
         <button type="button" id="botao-usuario" class="usuario" hidden aria-haspopup="true" aria-expanded="false">
           <img id="usuario-foto" alt="" referrerpolicy="no-referrer" hidden>
           <span id="usuario-inicial" aria-hidden="true"></span>
@@ -50,141 +53,191 @@
 
   <main>
     <!-- ============ INÍCIO ============ -->
-    <section id="aba-inicio" class="aba" aria-labelledby="tab-inicio">
+    <section id="aba-inicio" class="aba">
       <div id="pendentes-aviso" class="aviso aviso-info" hidden></div>
       <button type="button" id="aviso-acessos" class="aviso aviso-alerta aviso-botao" hidden></button>
 
-      <article class="card">
-        <div class="card-cab">
-          <h2>Última medição</h2>
-          <span id="ultima-data" class="muted"></span>
-        </div>
-        <div id="ultima-medicao" class="medidores">
-          <p class="muted">Nenhuma medição ainda.</p>
-        </div>
-        <div id="veredito" class="veredito" hidden></div>
-      </article>
-
-      <button type="button" class="botao botao-grande" data-ir="registrar">
-        <span aria-hidden="true">＋</span> Fazer registro
-      </button>
-
-      <article class="card">
-        <div class="card-cab">
-          <h2>Faltando comprar</h2>
-          <button type="button" class="link" data-ir="compras">Ver lista</button>
-        </div>
-        <ul id="inicio-faltando" class="lista-simples"></ul>
-        <button type="button" class="botao botao-sec" data-ir="compras" data-foco="#lista-produto">Avisar que um produto está acabando</button>
-      </article>
-
-      <article class="card">
-        <h2>Resumo do mês</h2>
-        <div class="resumo">
-          <div><span id="res-registros" class="num">0</span><small>registros</small></div>
-          <div><span id="res-gasto" class="num">R$ 0</span><small>gasto em compras</small></div>
-          <div><span id="res-dias" class="num">–</span><small>dias desde o último registro</small></div>
+      <article id="status-agua" class="status-agua neutro">
+        <span class="status-luz" aria-hidden="true"></span>
+        <div>
+          <strong id="status-titulo">Ainda sem medição</strong>
+          <p id="status-texto">Toque em Registrar para anotar a primeira medição.</p>
+          <p id="status-valores" class="status-valores"></p>
         </div>
       </article>
 
-      <article class="card lembrete">
-        <h2>Lembre-se</h2>
-        <ul>
-          <li>Meça cloro e pH <strong>antes de cada banho</strong>.</li>
-          <li>Só coloque produto se a medição mostrar que precisa.</li>
-          <li>Nunca misture produtos químicos.</li>
-        </ul>
-      </article>
+      <nav class="grade-acoes" aria-label="O que você quer fazer?">
+        <button type="button" class="tile tile-principal" data-ir="registrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6M10 4v5.5L5 18a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-8.5V4M7.5 15h9"/></svg>
+          <strong>Registrar</strong><small>Medição e limpeza</small>
+        </button>
+        <button type="button" class="tile" data-ir="faltando">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 2.5 20h19zM12 10v4.5M12 17.5v.01"/></svg>
+          <strong>Está acabando</strong><small>Avisar o que falta</small>
+          <span class="tile-badge" id="badge-faltando" hidden></span>
+        </button>
+        <button type="button" class="tile" data-ir="comprei">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6M9.5 19.5a1 1 0 1 0 0 .01M17 19.5a1 1 0 1 0 0 .01"/></svg>
+          <strong>Comprei</strong><small>Lançar o valor</small>
+        </button>
+        <button type="button" class="tile" data-ir="gastos">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          <strong>Gastos</strong><small id="tile-gasto">Prestação de contas</small>
+        </button>
+        <button type="button" class="tile" data-ir="historico">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4"/></svg>
+          <strong>Histórico</strong><small>Registros anteriores</small>
+        </button>
+        <button type="button" class="tile" data-ir="guia">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H8a3 3 0 0 1-3-3zm3 13h8M8 8h6M8 11.5h6"/></svg>
+          <strong>Guia</strong><small>Como cuidar da água</small>
+        </button>
+      </nav>
     </section>
 
-    <!-- ============ REGISTRAR ============ -->
-    <section id="aba-registrar" class="aba" aria-labelledby="tab-registrar" hidden>
+    <!-- ============ REGISTRAR (3 passos) ============ -->
+    <section id="aba-registrar" class="aba" hidden>
       <form id="form" novalidate>
         <input type="hidden" name="id">
+        <input type="hidden" name="temperatura">
 
-        <div id="editando-aviso" class="aviso aviso-info" hidden>
-          Editando registro. <button type="button" id="cancelar-edicao" class="link">Cancelar</button>
+        <div class="passos" aria-hidden="true">
+          <span data-passo-ind="1"></span><span data-passo-ind="2"></span><span data-passo-ind="3"></span>
         </div>
 
-        <article class="card">
-          <label class="campo">
-            <span>Quem fez</span>
-            <input type="text" name="responsavel" list="lista-responsaveis" autocomplete="name" maxlength="60" placeholder="Nome" required>
-            <datalist id="lista-responsaveis"></datalist>
-          </label>
-          <div class="grade2">
+        <div id="editando-aviso" class="aviso aviso-info" hidden>
+          Editando um registro antigo. <button type="button" id="cancelar-edicao" class="link">Cancelar</button>
+        </div>
+
+        <!-- Passo 1: medição -->
+        <div class="passo" data-passo="1">
+          <h2 class="passo-titulo">Quanto deu a medição?</h2>
+          <p class="muted passo-dica">Toque no valor que aparece no kit. Se não mediu, deixe em branco.</p>
+
+          <article class="card medida" data-param="cloro">
+            <div class="medida-cab"><h3>Cloro <small>ppm</small></h3><em class="dica"></em></div>
+            <div class="chips-valor" data-valores="0,5;1;1,5;2;3;5"></div>
+            <input type="text" inputmode="decimal" name="cloro" placeholder="ou digite outro valor" autocomplete="off">
+          </article>
+
+          <article class="card medida" data-param="ph">
+            <div class="medida-cab"><h3>pH</h3><em class="dica"></em></div>
+            <div class="chips-valor" data-valores="6,8;7;7,2;7,4;7,6;7,8;8"></div>
+            <input type="text" inputmode="decimal" name="ph" placeholder="ou digite outro valor" autocomplete="off">
+          </article>
+
+          <details class="card medida mais-medida" data-param="alcalinidade">
+            <summary><span>Mediu alcalinidade?</span><em class="dica"></em></summary>
+            <div class="chips-valor" data-valores="40;80;120;180;240"></div>
+            <input type="text" inputmode="decimal" name="alcalinidade" placeholder="ou digite outro valor" autocomplete="off">
+          </details>
+        </div>
+
+        <!-- Passo 2: o que foi feito -->
+        <div class="passo" data-passo="2" hidden>
+          <h2 class="passo-titulo">O que você fez?</h2>
+          <p class="muted passo-dica">Marque tudo o que foi feito hoje.</p>
+          <article class="card">
+            <ul id="lista-tarefas" class="tarefas"></ul>
+          </article>
+        </div>
+
+        <!-- Passo 3: produtos e observação -->
+        <div class="passo" data-passo="3" hidden>
+          <h2 class="passo-titulo">Colocou algum produto?</h2>
+          <p class="muted passo-dica">Toque no produto e ajuste a quantidade se quiser.</p>
+          <article class="card">
+            <div class="chips-produto">
+              <button type="button" data-produto="Pastilhas no dosador">Pastilhas no dosador</button>
+              <button type="button" data-produto="Elevador de pH">Elevador de pH</button>
+              <button type="button" data-produto="Redutor de pH">Redutor de pH</button>
+              <button type="button" data-produto="Cloro granulado">Cloro granulado</button>
+              <button type="button" data-produto="Alcalinizante">Alcalinizante</button>
+              <button type="button" data-produto="Algicida">Algicida</button>
+              <button type="button" data-produto="Clarificante">Clarificante</button>
+            </div>
             <label class="campo">
-              <span>Data</span>
-              <input type="date" name="data" required>
+              <span>Produtos e quantidades</span>
+              <textarea name="produtos" rows="2" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador"></textarea>
             </label>
             <label class="campo">
-              <span>Hora</span>
-              <input type="time" name="hora">
+              <span>Observação <small>opcional</small></span>
+              <textarea name="observacoes" rows="2" maxlength="2000" placeholder="Água turva, chuva, bomba fazendo barulho…"></textarea>
             </label>
-          </div>
-        </article>
+          </article>
 
-        <article class="card">
-          <h2>Medição</h2>
-          <div class="grade2">
-            <label class="campo medida">
-              <span>Cloro <small>ppm</small></span>
-              <input type="text" inputmode="decimal" name="cloro" placeholder="ex.: 2,5" autocomplete="off">
-              <em class="dica"></em>
+          <details class="card quem-quando">
+            <summary><span id="quem-quando-resumo"></span><span class="link">alterar</span></summary>
+            <label class="campo">
+              <span>Quem fez</span>
+              <input type="text" name="responsavel" list="lista-responsaveis" autocomplete="name" maxlength="60" required>
             </label>
-            <label class="campo medida">
-              <span>pH</span>
-              <input type="text" inputmode="decimal" name="ph" placeholder="ex.: 7,4" autocomplete="off">
-              <em class="dica"></em>
-            </label>
-          </div>
-          <label class="campo medida">
-            <span>Alcalinidade <small>ppm · se medir</small></span>
-            <input type="text" inputmode="decimal" name="alcalinidade" placeholder="ex.: 100" autocomplete="off">
-            <em class="dica"></em>
-          </label>
-          <input type="hidden" name="temperatura">
-        </article>
+            <div class="grade2">
+              <label class="campo"><span>Data</span><input type="date" name="data" required></label>
+              <label class="campo"><span>Hora</span><input type="time" name="hora"></label>
+            </div>
+          </details>
+          <datalist id="lista-responsaveis"></datalist>
+        </div>
 
-        <article class="card">
-          <div class="card-cab">
-            <h2>O que foi feito</h2>
-            <span id="contador-tarefas" class="muted">0</span>
-          </div>
-          <ul id="lista-tarefas" class="tarefas"></ul>
-        </article>
-
-        <article class="card">
-          <label class="campo">
-            <span>Produtos colocados na água</span>
-            <textarea name="produtos" rows="2" maxlength="1000" placeholder="ex.: 2 pastilhas no dosador; 150 g de elevador de pH"></textarea>
-          </label>
-          <label class="campo">
-            <span>Observação</span>
-            <textarea name="observacoes" rows="2" maxlength="2000" placeholder="Água turva, chuva, bomba fazendo barulho…"></textarea>
-          </label>
-        </article>
-
-        <div class="barra-salvar">
-          <button type="submit" class="botao" id="botao-salvar">Salvar registro</button>
+        <div class="barra-passos">
+          <button type="button" class="botao botao-sec" id="passo-voltar">Voltar</button>
+          <button type="button" class="botao" id="passo-proximo">Próximo</button>
+          <button type="submit" class="botao" id="botao-salvar" hidden>Salvar</button>
         </div>
       </form>
     </section>
 
-    <!-- ============ COMPRAS ============ -->
-    <section id="aba-compras" class="aba" aria-labelledby="tab-compras" hidden>
+    <!-- ============ CONFIRMAÇÃO ============ -->
+    <section id="aba-sucesso" class="aba" hidden>
+      <div class="sucesso">
+        <span class="sucesso-check" aria-hidden="true">✓</span>
+        <h2 id="sucesso-titulo">Registro salvo!</h2>
+        <div id="sucesso-veredito" class="veredito" hidden></div>
+        <p id="sucesso-texto" class="muted"></p>
+        <button type="button" class="botao botao-grande" data-ir="inicio">Voltar ao início</button>
+        <button type="button" class="botao botao-sec" data-ir="guia">Abrir o Guia</button>
+      </div>
+    </section>
+
+    <!-- ============ ESTÁ ACABANDO ============ -->
+    <section id="aba-faltando" class="aba" hidden>
       <article class="card">
-        <h2>Faltando comprar</h2>
+        <h2>O que está acabando?</h2>
+        <div class="chips-produto" id="chips-faltando">
+          <button type="button" data-falta="Pastilha de cloro">Pastilha de cloro</button>
+          <button type="button" data-falta="Elevador de pH">Elevador de pH</button>
+          <button type="button" data-falta="Redutor de pH">Redutor de pH</button>
+          <button type="button" data-falta="Cloro granulado">Cloro granulado</button>
+          <button type="button" data-falta="Alcalinizante">Alcalinizante</button>
+          <button type="button" data-falta="Algicida">Algicida</button>
+          <button type="button" data-falta="Clarificante">Clarificante</button>
+          <button type="button" data-falta="Reagentes do kit de teste">Reagentes do kit</button>
+        </div>
         <form id="form-lista" class="linha-add" novalidate>
-          <input type="text" id="lista-produto" name="produto" list="lista-produtos" maxlength="120" placeholder="O que está acabando?" autocomplete="off" required>
+          <input type="text" id="lista-produto" name="produto" list="lista-produtos" maxlength="120" placeholder="Outro produto" autocomplete="off">
           <button class="botao botao-peq" type="submit">Avisar</button>
         </form>
+      </article>
+      <article class="card">
+        <h2>Já está na lista</h2>
         <div id="lista-faltando" class="lista-itens"></div>
       </article>
+    </section>
 
+    <!-- ============ COMPREI ============ -->
+    <section id="aba-comprei" class="aba" hidden>
+      <p class="muted passo-dica">Toque no produto que você comprou e informe o valor.</p>
+      <div id="lista-comprar" class="lista-comprar"></div>
+      <button type="button" id="custo-novo" class="botao botao-sec">Comprei outra coisa</button>
+      <div id="lista-comprados" class="comprados"></div>
+    </section>
+
+    <!-- ============ GASTOS ============ -->
+    <section id="aba-gastos" class="aba" hidden>
       <article class="card">
         <div class="card-cab">
-          <h2>Gastos</h2>
+          <h2>Total gasto</h2>
           <select id="custo-mes" class="mes" aria-label="Mês"></select>
         </div>
         <div class="total-mes">
@@ -192,29 +245,13 @@
           <small id="custo-qtd" class="muted"></small>
         </div>
         <ul id="custo-por-pessoa" class="por-pessoa"></ul>
-        <div class="linha-botoes">
-          <button type="button" id="custo-novo" class="botao botao-sec botao-peq">Outra compra</button>
-          <button type="button" id="custo-exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
-        </div>
+        <button type="button" id="custo-exportar" class="botao botao-sec botao-peq">Exportar CSV (prestação de contas)</button>
       </article>
-
       <div id="lista-custos" class="historico"></div>
-      <div id="lista-comprados" class="comprados"></div>
-
-      <datalist id="lista-produtos">
-        <option value="Pastilha de cloro (tricloro)">
-        <option value="Cloro granulado">
-        <option value="Elevador de pH">
-        <option value="Redutor de pH">
-        <option value="Alcalinizante">
-        <option value="Algicida">
-        <option value="Clarificante">
-        <option value="Reagentes do kit de teste">
-      </datalist>
     </section>
 
     <!-- ============ HISTÓRICO ============ -->
-    <section id="aba-historico" class="aba" aria-labelledby="tab-historico" hidden>
+    <section id="aba-historico" class="aba" hidden>
       <div class="filtros">
         <button type="button" id="exportar" class="botao botao-sec botao-peq">Exportar CSV</button>
       </div>
@@ -224,7 +261,7 @@
     </section>
 
     <!-- ============ GUIA ============ -->
-    <section id="aba-guia" class="aba" aria-labelledby="tab-guia" hidden>
+    <section id="aba-guia" class="aba" hidden>
       <details class="guia" open>
         <summary>1. A piscina e o objetivo</summary>
         <div class="guia-corpo">
@@ -349,6 +386,7 @@
     </section>
 
 
+
     <!-- ============ ACESSOS (administrador) ============ -->
     <section id="aba-acessos" class="aba" hidden>
       <article class="card">
@@ -375,65 +413,44 @@
       <div id="lista-atividades" class="atividades"><p class="muted">Carregando…</p></div>
       <button type="button" id="atividades-mais" class="botao botao-sec" hidden>Carregar mais</button>
     </section>
-  </main>
 
-  <nav class="abas" role="tablist">
-    <button role="tab" id="tab-inicio" data-aba="inicio" aria-selected="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
-      <span>Início</span>
-    </button>
-    <button role="tab" id="tab-registrar" data-aba="registrar" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17"/></svg>
-      <span>Registrar</span>
-    </button>
-    <button role="tab" id="tab-compras" data-aba="compras" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.5l2.2 11h10.6l2-8H6.6M9.5 19.5a1 1 0 1 0 0 .01M17 19.5a1 1 0 1 0 0 .01"/></svg>
-      <span>Compras</span>
-    </button>
-    <button role="tab" id="tab-historico" data-aba="historico" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4"/></svg>
-      <span>Histórico</span>
-    </button>
-    <button role="tab" id="tab-guia" data-aba="guia" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H8a3 3 0 0 1-3-3zm3 13h8M8 8h6M8 11.5h6"/></svg>
-      <span>Guia</span>
-    </button>
-  </nav>
+    <datalist id="lista-produtos">
+      <option value="Pastilha de cloro">
+      <option value="Cloro granulado">
+      <option value="Elevador de pH">
+      <option value="Redutor de pH">
+      <option value="Alcalinizante">
+      <option value="Algicida">
+      <option value="Clarificante">
+      <option value="Reagentes do kit de teste">
+    </datalist>
+  </main>
 
   <!-- janela para "Comprei" e para lançar/editar compra -->
   <dialog id="dialogo-compra">
     <form id="form-compra" novalidate>
       <input type="hidden" name="item_id">
       <input type="hidden" name="custo_id">
-      <h2 id="compra-titulo">Registrar compra</h2>
+      <h2 id="compra-titulo">Comprei</h2>
       <label class="campo">
         <span>Produto</span>
         <input type="text" name="produto" list="lista-produtos" maxlength="120" required>
       </label>
-      <div class="grade2">
-        <label class="campo">
-          <span>Valor <small>R$</small></span>
-          <input type="text" inputmode="decimal" name="valor" placeholder="0,00" autocomplete="off" required>
-        </label>
-        <label class="campo">
-          <span>Quantidade</span>
-          <input type="text" name="quantidade" maxlength="40" placeholder="ex.: 10 un">
-        </label>
-      </div>
-      <div class="grade2">
-        <label class="campo">
-          <span>Quem comprou</span>
-          <input type="text" name="comprador" list="lista-responsaveis" maxlength="60" required>
-        </label>
-        <label class="campo">
-          <span>Data</span>
-          <input type="date" name="data" required>
-        </label>
-      </div>
-      <label class="campo">
-        <span>Loja <small>opcional</small></span>
-        <input type="text" name="loja" maxlength="80">
+      <label class="campo campo-valor">
+        <span>Quanto custou? <small>R$</small></span>
+        <input type="text" inputmode="decimal" name="valor" placeholder="0,00" autocomplete="off" required>
       </label>
+      <details class="quem-quando">
+        <summary><span id="compra-resumo"></span><span class="link">alterar</span></summary>
+        <div class="grade2">
+          <label class="campo"><span>Quem comprou</span><input type="text" name="comprador" list="lista-responsaveis" maxlength="60" required></label>
+          <label class="campo"><span>Data</span><input type="date" name="data" required></label>
+        </div>
+        <div class="grade2">
+          <label class="campo"><span>Quantidade</span><input type="text" name="quantidade" maxlength="40" placeholder="ex.: 10 un"></label>
+          <label class="campo"><span>Loja</span><input type="text" name="loja" maxlength="80"></label>
+        </div>
+      </details>
       <div class="linha-botoes">
         <button type="button" class="botao botao-sec" id="compra-cancelar">Cancelar</button>
         <button type="submit" class="botao" id="compra-salvar">Salvar</button>
